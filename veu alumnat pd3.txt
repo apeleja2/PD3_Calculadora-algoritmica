@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PD3: Calculadora Algorítmica - Veu de l'Alumnat</title>
+    <style>
+        :root {
+            --color-principal: #2c3e50;
+            --color-accent: #27ae60;
+            --color-fons: #f4f7f6;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--color-fons);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        header {
+            text-align: center;
+            border-bottom: 2px solid var(--color-fons);
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+        }
+        h1 { color: var(--color-principal); margin: 0; font-size: 1.8rem; }
+        p.subtitle { color: #7f8c8d; margin-top: 10px; }
+
+        .form-group { margin-bottom: 25px; }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--color-principal);
+            line-height: 1.4;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--color-accent);
+        }
+        textarea { min-height: 100px; resize: vertical; }
+
+        button {
+            width: 100%;
+            background-color: var(--color-accent);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+        button:hover {
+            background-color: #219150;
+            transform: translateY(-2px);
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.8rem;
+            color: #bdc3c7;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>PD3: Calculadora Algorítmica</h1>
+        <p class="subtitle">Recollida de reflexions i aprenentatges</p>
+    </header>
+
+    <form id="pd3-form">
+        <div class="form-group">
+            <label for="centre">A quin centre educatiu pertanys?</label>
+            <select id="centre" required>
+                <option value="" disabled selected>Tria el teu centre...</option>
+                <option value="LA CANALETA">LA CANALETA</option>
+                <option value="CENTRE 2">CENTRE 2</option>
+                <option value="CENTRE 3">CENTRE 3</option>
+                <option value="CENTRE 4">CENTRE 4</option>
+                <option value="CENTRE 5">CENTRE 5</option>
+                <option value="CENTRE 6">CENTRE 6</option>
+                <option value="CENTRE 7">CENTRE 7</option>
+                <option value="CENTRE 8">CENTRE 8</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="nom">Nom i cognoms:</label>
+            <input type="text" id="nom" placeholder="Escriu el teu nom..." required>
+        </div>
+
+        <div class="form-group">
+            <label>1. De totes les activitats que hem fet (el repte de les cartes, descobrir com multiplicaven antigament o programar la calculadora a Scratch), quina t'ha agradat més i per què?</label>
+            <textarea id="p1" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>2. Què és més difícil: aprendre a multiplicar de 3 maneres diferents (com la Maria, el Pol o l'Aina) o ensenyar a l'ordinador (Scratch) a fer-ho sol? Per què?</label>
+            <textarea id="p2" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>3. Imagina que un company comença la PD3 ara mateix. En quin moment li diries: 'Ves amb compte aquí, que això és el més complicat de tot'?</label>
+            <textarea id="p3" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>4. Si poguessis fer la teva calculadora de nou, què li afegiries per fer-la més xula o perquè no s'equivoqués mai?</label>
+            <textarea id="p4" required></textarea>
+        </div>
+
+        <button type="submit" id="submit-btn">Enviar la meva reflexió</button>
+    </form>
+
+    <div class="footer">
+        PD3 - Analistes de dades | GitHub Pages
+    </div>
+</div>
+
+<script>
+    // URL de tramesa del formulari (formResponse)
+    const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSeo6CA_HleiTOP0zEKHjw_ZH9PJFKu0PZb2kijS0AmnP-N8BA/formResponse";
+    
+    // IDs extrets del teu últim enllaç
+    const entries = {
+        centre: "entry.319846495",
+        nom: "entry.406772652",
+        p1: "entry.131029136",
+        p2: "entry.704364150",
+        p3: "entry.996996479",
+        p4: "entry.1525510283"
+    };
+
+    document.getElementById('pd3-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submit-btn');
+        btn.innerText = "Enviant...";
+        btn.disabled = true;
+
+        // Creem el cos de la petició amb els paràmetres de Google Forms
+        const formData = new FormData();
+        formData.append(entries.centre, document.getElementById('centre').value);
+        formData.append(
