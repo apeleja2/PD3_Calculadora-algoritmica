@@ -89,10 +89,11 @@
 <script>
     const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSeo6CA_HleiTOP0zEKHjw_ZH9PJFKu0PZb2kijS0AmnP-N8BA/formResponse";
     
+    // IDs CORREGITS PER EVITAR L'INTERCANVI DE COLUMNES C I D
     const entries = {
         centre: "entry.319846495",
-        nom: "entry.406772652", 
-        p1: "entry.131029136", 
+        nom: "entry.131029136", // Corregit: Ara va a la Columna C
+        p1: "entry.406772652",  // Corregit: Ara va a la Columna D
         p2: "entry.704364150",
         p3: "entry.996996479",
         p4: "entry.1525510283"
@@ -137,19 +138,12 @@
         }
     }
 
-    // GESTIÓ DE LA TECLA INTRO
     form.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
-            // Si estem en un textarea (preguntes llargues), deixem que faci salt de línia
             if (e.target.tagName === 'TEXTAREA') return;
-
-            e.preventDefault(); // Evitem que el formulari s'enviï sol
-            
+            e.preventDefault();
             if (currentStep < totalSteps) {
-                goNext(); // Si no és l'últim pas, avança
-            } else {
-                // Si és l'últim pas, podríem enviar, però millor obligar a fer clic a enviar 
-                // per evitar enviaments accidentals o deixar que l'usuari triï.
+                goNext();
             }
         }
     });
@@ -159,8 +153,6 @@
 
     form.onsubmit = (e) => {
         e.preventDefault();
-        
-        // Només enviem si estem realment a l'últim pas
         if (currentStep !== totalSteps) return;
 
         submitBtn.innerText = "ENVIANT...";
