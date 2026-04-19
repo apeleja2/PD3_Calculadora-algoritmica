@@ -58,8 +58,8 @@
         </div>
 
         <div class="step" id="step3">
-            <label>1. De totes les activitats (cartes, mètodes antics o Scratch), quina t'ha agradat més i per què?</label>
-            <textarea id="p1" placeholder="Explica'ns la teva preferida..." spellcheck="true" lang="ca"></textarea>
+            <label>1. De les activitats de la PD3, què és el que més t'ha agradat? Per què?</label>
+            <textarea id="p1" placeholder="Explica la teva experiència..." spellcheck="true" lang="ca"></textarea>
             <div class="spellcheck-hint">💡 Revisa si hi ha paraules subratllades en vermell!</div>
         </div>
 
@@ -69,12 +69,12 @@
         </div>
 
         <div class="step" id="step5">
-            <label>3. Si un company comencés la PD3 ara, en quin moment li diries que tingués cura perquè és el més difícil?</label>
+            <label>3. Si un company o companya comencés la PD3 ara, en quin moment li diries que tingués cura perquè per a tu ha estat el més difícil?</label>
             <textarea id="p3" spellcheck="true" lang="ca"></textarea>
         </div>
 
         <div class="step" id="step6">
-            <label>4. Què li afegiries a la teva calculadora per fer-la més xula o perquè no s'equivoqués mai? Com la podries millorar?</label>
+            <label>4. Què li afegiries a la teva calculadora per fer-la més "xula" o perquè no s'equivoqués mai? Com la podries millorar?</label>
             <textarea id="p4" spellcheck="true" lang="ca"></textarea>
         </div>
 
@@ -89,11 +89,10 @@
 <script>
     const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSeo6CA_HleiTOP0zEKHjw_ZH9PJFKu0PZb2kijS0AmnP-N8BA/formResponse";
     
-    // CONFIGURACIÓ DEFINITIVA BASADA EN ELS TEUS ENLLAÇOS
     const entries = {
         centre: "entry.319846495",
-        nom: "entry.406772652", // Aquest ID segons la teva prova és el Nom (Columna D)
-        p1: "entry.131029136",  // Aquest ID segons la teva prova és la P1 (Columna C)
+        nom: "entry.406772652", 
+        p1: "entry.131029136", 
         p2: "entry.704364150",
         p3: "entry.996996479",
         p4: "entry.1525510283"
@@ -151,11 +150,12 @@
 
         fetch(formURL, { method: 'POST', mode: 'no-cors', body: formData })
         .then(() => {
-            alert('Fet! Gràcies per la teva reflexió.');
+            alert('Molt bé! Les teves respostes han arribat correctament.');
             location.reload();
         }).catch(() => {
-            alert('Error. Torna-ho a provar.');
+            alert('Error en enviar. Torna-ho a provar.');
             submitBtn.disabled = false;
+            submitBtn.innerText = "Enviar respostes";
         });
     };
 </script>
