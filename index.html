@@ -95,4 +95,95 @@
         p1: "entry.131029136", 
         p2: "entry.704364150",
         p3: "entry.996996479",
-        p4: "entry.1
+        p4: "entry.1525510283"
+    };
+
+    let currentStep = 1;
+    const totalSteps = 6;
+    const form = document.getElementById('pd3-form');
+    const nextBtn = document.getElementById('nextBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const progress = document.getElementById('progress');
+    const stepTitle = document.getElementById('step-title');
+
+    function updateForm() {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step' + currentStep).classList.add('active');
+        progress.style.width = (currentStep / totalSteps * 100) + '%';
+        stepTitle.innerText = "PAS " + currentStep + " DE " + totalSteps;
+        prevBtn.style.display = currentStep === 1 ? 'none' : 'block';
+        
+        if (currentStep === totalSteps) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'block';
+        } else {
+            nextBtn.style.display = 'block';
+            submitBtn.style.display = 'none';
+        }
+    }
+
+    function goNext() {
+        const activeStep = document.getElementById('step' + currentStep);
+        const input = activeStep.querySelector('input, select, textarea');
+        
+        if (input && input.value.trim() !== "") {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateForm();
+            }
+        } else {
+            alert("Si us plau, respon abans de continuar.");
+        }
+    }
+
+    // GESTIÓ DE LA TECLA INTRO
+    form.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            // Si estem en un textarea (preguntes llargues), deixem que faci salt de línia
+            if (e.target.tagName === 'TEXTAREA') return;
+
+            e.preventDefault(); // Evitem que el formulari s'enviï sol
+            
+            if (currentStep < totalSteps) {
+                goNext(); // Si no és l'últim pas, avança
+            } else {
+                // Si és l'últim pas, podríem enviar, però millor obligar a fer clic a enviar 
+                // per evitar enviaments accidentals o deixar que l'usuari triï.
+            }
+        }
+    });
+
+    nextBtn.onclick = goNext;
+    prevBtn.onclick = () => { currentStep--; updateForm(); };
+
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        
+        // Només enviem si estem realment a l'últim pas
+        if (currentStep !== totalSteps) return;
+
+        submitBtn.innerText = "ENVIANT...";
+        submitBtn.disabled = true;
+
+        const formData = new FormData();
+        formData.append(entries.centre, document.getElementById('centre').value);
+        formData.append(entries.nom, document.getElementById('nom').value);
+        formData.append(entries.p1, document.getElementById('p1').value);
+        formData.append(entries.p2, document.getElementById('p2').value);
+        formData.append(entries.p3, document.getElementById('p3').value);
+        formData.append(entries.p4, document.getElementById('p4').value);
+
+        fetch(formURL, { method: 'POST', mode: 'no-cors', body: formData })
+        .then(() => {
+            alert('Molt bé! Les teves respostes han arribat correctament.');
+            location.reload();
+        }).catch(() => {
+            alert('Error en enviar. Torna-ho a provar.');
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Enviar respostes";
+        });
+    };
+</script>
+</body>
+</html>
