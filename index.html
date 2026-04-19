@@ -275,13 +275,14 @@
         submitBtn.innerText = "ENVIANT...";
         submitBtn.disabled = true;
 
-        const formData = new FormData();
-        formData.append(entries.centre, document.getElementById('centre').value);
-        formData.append(entries.nom, document.getElementById('nom').value);
-        formData.append(entries.p1, document.getElementById('p1').value);
-        formData.append(entries.p2, document.getElementById('p2').value);
-        formData.append(entries.p3, document.getElementById('p3').value);
-        formData.append(entries.p4, document.getElementById('p4').value);
+const formData = new FormData();
+formData.append(entries.centre, document.getElementById('centre').value);
+// L'ORDRE IMPORTA PER A GOOGLE:
+formData.append(entries.p1, document.getElementById('p1').value); // Primer la P1 si va a la columna C
+formData.append(entries.nom, document.getElementById('nom').value); // Després el Nom si va a la columna D
+formData.append(entries.p2, document.getElementById('p2').value);
+formData.append(entries.p3, document.getElementById('p3').value);
+formData.append(entries.p4, document.getElementById('p4').value);
 
         fetch(formURL, { method: 'POST', mode: 'no-cors', body: formData })
         .then(() => {
