@@ -6,122 +6,25 @@
     <title>CALCULADORA ALGORÍTMICA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --color-primari: #3498db;
-            --color-accent: #e67e22;
-            --color-fons: #e5e9f0;
-        }
-
-        body {
-            font-family: 'Montserrat', sans-serif;
-            background-color: var(--color-fons);
-            background-image: radial-gradient(#bdc3c7 0.5px, transparent 0.5px);
-            background-size: 20px 20px;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 600px;
-            width: 90%;
-            background: white;
-            border-radius: 25px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-            position: relative;
-            min-height: 480px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        header {
-            background-color: var(--color-primari);
-            color: white;
-            padding: 25px;
-            text-align: center;
-        }
-
+        :root { --color-primari: #3498db; --color-accent: #e67e22; --color-fons: #e5e9f0; }
+        body { font-family: 'Montserrat', sans-serif; background-color: var(--color-fons); background-image: radial-gradient(#bdc3c7 0.5px, transparent 0.5px); background-size: 20px 20px; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { max-width: 600px; width: 90%; background: white; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative; min-height: 480px; display: flex; flex-direction: column; overflow: hidden; }
+        header { background-color: var(--color-primari); color: white; padding: 25px; text-align: center; }
         h1 { margin: 0; font-size: 1.4rem; text-transform: uppercase; letter-spacing: 1px; }
-
-        .progress-bar {
-            height: 8px;
-            background: #eee;
-            width: 100%;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--color-accent);
-            width: 16.6%;
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .step {
-            padding: 40px;
-            display: none;
-            flex-grow: 1;
-            animation: slideIn 0.4s ease-out;
-        }
-
+        .progress-bar { height: 8px; background: #eee; width: 100%; }
+        .progress-fill { height: 100%; background: var(--color-accent); width: 16.6%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .step { padding: 40px; display: none; flex-grow: 1; animation: slideIn 0.4s ease-out; }
         .step.active { display: flex; flex-direction: column; justify-content: center; }
-
-        label {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            line-height: 1.4;
-        }
-
-        .spellcheck-hint {
-            font-size: 0.8rem;
-            color: #7f8c8d;
-            margin-top: 8px;
-            font-style: italic;
-        }
-
-        select, input, textarea {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #edeff2;
-            border-radius: 15px;
-            font-size: 1.1rem;
-            font-family: inherit;
-            box-sizing: border-box;
-            background: #f8f9fa;
-        }
-
+        label { font-size: 1.1rem; font-weight: bold; color: #2c3e50; margin-bottom: 20px; line-height: 1.4; }
+        .spellcheck-hint { font-size: 0.8rem; color: #7f8c8d; margin-top: 8px; font-style: italic; }
+        select, input, textarea { width: 100%; padding: 15px; border: 2px solid #edeff2; border-radius: 15px; font-size: 1.1rem; font-family: inherit; box-sizing: border-box; background: #f8f9fa; }
         textarea { min-height: 120px; resize: none; }
-
-        .navigation {
-            padding: 20px 40px 40px;
-            display: flex;
-            gap: 15px;
-        }
-
-        button {
-            flex: 1;
-            padding: 18px;
-            border-radius: 15px;
-            border: none;
-            font-size: 1rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
+        .navigation { padding: 20px 40px 40px; display: flex; gap: 15px; }
+        button { flex: 1; padding: 18px; border-radius: 15px; border: none; font-size: 1rem; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
         .btn-next { background: var(--color-primari); color: white; }
         .btn-prev { background: #bdc3c7; color: white; }
         .btn-submit { background: var(--color-accent); color: white; }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(30px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
     </style>
 </head>
 <body>
@@ -131,10 +34,7 @@
         <h1>CALCULADORA ALGORÍTMICA</h1>
         <div id="step-title" style="margin-top:5px; font-size: 0.85rem; font-weight: bold;">PAS 1 DE 6</div>
     </header>
-    
-    <div class="progress-bar">
-        <div class="progress-fill" id="progress"></div>
-    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
 
     <form id="pd3-form" lang="ca">
         <div class="step active" id="step1">
@@ -166,19 +66,16 @@
         <div class="step" id="step4">
             <label>2. Què creus que és més difícil: aprendre els 3 mètodes de la multiplicació o ensenyar a l'ordinador a fer-ho sol? Per què?</label>
             <textarea id="p2" spellcheck="true" lang="ca"></textarea>
-            <div class="spellcheck-hint">💡 Pots fer clic dret sobre les paraules amb error.</div>
         </div>
 
         <div class="step" id="step5">
             <label>3. Si un company comencés la PD3 ara, en quin moment li diries que tingués cura perquè és el més difícil?</label>
             <textarea id="p3" spellcheck="true" lang="ca"></textarea>
-            <div class="spellcheck-hint">💡 Una bona escriptura ajuda a entendre't millor!</div>
         </div>
 
         <div class="step" id="step6">
             <label>4. Què li afegiries a la teva calculadora per fer-la més xula o perquè no s'equivoqués mai? Com la podries millorar?</label>
             <textarea id="p4" spellcheck="true" lang="ca"></textarea>
-            <div class="spellcheck-hint">💡 Últim esforç! Revisa els accents.</div>
         </div>
 
         <div class="navigation">
@@ -190,4 +87,77 @@
 </div>
 
 <script>
-    const formURL = "
+    const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSeo6CA_HleiTOP0zEKHjw_ZH9PJFKu0PZb2kijS0AmnP-N8BA/formResponse";
+    
+    // CONFIGURACIÓ DEFINITIVA BASADA EN ELS TEUS ENLLAÇOS
+    const entries = {
+        centre: "entry.319846495",
+        nom: "entry.406772652", // Aquest ID segons la teva prova és el Nom (Columna D)
+        p1: "entry.131029136",  // Aquest ID segons la teva prova és la P1 (Columna C)
+        p2: "entry.704364150",
+        p3: "entry.996996479",
+        p4: "entry.1525510283"
+    };
+
+    let currentStep = 1;
+    const totalSteps = 6;
+    const form = document.getElementById('pd3-form');
+    const nextBtn = document.getElementById('nextBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const progress = document.getElementById('progress');
+    const stepTitle = document.getElementById('step-title');
+
+    function updateForm() {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step' + currentStep).classList.add('active');
+        progress.style.width = (currentStep / totalSteps * 100) + '%';
+        stepTitle.innerText = "PAS " + currentStep + " DE " + totalSteps;
+        prevBtn.style.display = currentStep === 1 ? 'none' : 'block';
+        if (currentStep === totalSteps) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'block';
+        } else {
+            nextBtn.style.display = 'block';
+            submitBtn.style.display = 'none';
+        }
+    }
+
+    nextBtn.onclick = () => {
+        const activeStep = document.getElementById('step' + currentStep);
+        const input = activeStep.querySelector('input, select, textarea');
+        if (input.value.trim() !== "") {
+            currentStep++;
+            updateForm();
+        } else {
+            alert("Si us plau, respon abans de continuar.");
+        }
+    };
+
+    prevBtn.onclick = () => { currentStep--; updateForm(); };
+
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        submitBtn.innerText = "ENVIANT...";
+        submitBtn.disabled = true;
+
+        const formData = new FormData();
+        formData.append(entries.centre, document.getElementById('centre').value);
+        formData.append(entries.nom, document.getElementById('nom').value);
+        formData.append(entries.p1, document.getElementById('p1').value);
+        formData.append(entries.p2, document.getElementById('p2').value);
+        formData.append(entries.p3, document.getElementById('p3').value);
+        formData.append(entries.p4, document.getElementById('p4').value);
+
+        fetch(formURL, { method: 'POST', mode: 'no-cors', body: formData })
+        .then(() => {
+            alert('Fet! Gràcies per la teva reflexió.');
+            location.reload();
+        }).catch(() => {
+            alert('Error. Torna-ho a provar.');
+            submitBtn.disabled = false;
+        });
+    };
+</script>
+</body>
+</html>
