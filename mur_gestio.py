@@ -11,7 +11,7 @@ st.markdown("---")
 
 # 1. Connexió amb el Google Sheet (URL de visualització)
 # Assegura't que el full estigui en "Qualsevol persona amb l'enllaç pot llegir"
-sheet_url = "https://docs.google.com/spreadsheets/d/1vV0L8WqL1pGz0q9766VvFmU8o8pWc_X1T6O27Vl-x_M/edit#gid=0"
+sheet_url = "https://docs.google.com/spreadsheets/d/1srWD8f2oN_JeV4lwDYPe6ysLbRsXk9UZHE9vEmqVHlo/edit?usp=sharing"
 
 # Convertim la URL d'edició a URL de descàrrega directa CSV
 def get_csv_url(url):
