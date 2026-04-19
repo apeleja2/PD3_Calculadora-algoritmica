@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PD3: La Nostra Calculadora</title>
+    <title>PD3: CALCULADORA ALGORÍTMICA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -76,6 +76,13 @@
             line-height: 1.4;
         }
 
+        .spellcheck-hint {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
         select, input, textarea {
             width: 100%;
             padding: 15px;
@@ -131,7 +138,7 @@
 
 <div class="container">
     <header>
-        <h1>PD3: LA NOSTRA CALCULADORA</h1>
+        <h1>PD3: CALCULADORA ALGORÍTMICA</h1>
         <div id="step-title" style="margin-top:5px; font-size: 0.85rem; font-weight: bold;">PAS 1 DE 6</div>
     </header>
     
@@ -139,7 +146,7 @@
         <div class="progress-fill" id="progress"></div>
     </div>
 
-    <form id="pd3-form">
+    <form id="pd3-form" lang="ca">
         <div class="step active" id="step1">
             <label>De quina escola ets?</label>
             <select id="centre" required>
@@ -157,27 +164,31 @@
 
         <div class="step" id="step2">
             <label>Com et dius?</label>
-            <input type="text" id="nom" placeholder="Escriu el teu nom i cognom" required>
+            <input type="text" id="nom" placeholder="Escriu el teu nom i cognom" required spellcheck="false">
         </div>
 
         <div class="step" id="step3">
             <label>1. De totes les activitats (cartes, mètodes antics o Scratch), quina t'ha agradat més i per què?</label>
-            <textarea id="p1" placeholder="Explica'ns la teva preferida..." required></textarea>
+            <textarea id="p1" placeholder="Explica'ns la teva preferida..." required spellcheck="true" lang="ca"></textarea>
+            <div class="spellcheck-hint">💡 Revisa si hi ha paraules subratllades en vermell!</div>
         </div>
 
         <div class="step" id="step4">
-            <label>2. Què creus que és més difícil: aprendre els 3 mètodes o ensenyar a l'ordinador a fer-ho sol?</label>
-            <textarea id="p2" required></textarea>
+            <label>2. Què creus que és més difícil: aprendre els 3 mètodes de la multiplicació o ensenyar a l'ordinador a fer-ho sol? Per què?</label>
+            <textarea id="p2" required spellcheck="true" lang="ca"></textarea>
+            <div class="spellcheck-hint">💡 Pots fer clic dret sobre les paraules amb error.</div>
         </div>
 
         <div class="step" id="step5">
-            <label>3. Si un company comencés el projecte ara, en quin moment li diries que tingués cura perquè és el més difícil?</label>
-            <textarea id="p3" required></textarea>
+            <label>3. Si un company comencés la PD3 ara, en quin moment li diries que tingués cura perquè és el més difícil?</label>
+            <textarea id="p3" required spellcheck="true" lang="ca"></textarea>
+            <div class="spellcheck-hint">💡 Una bona escriptura ajuda a entendre't millor!</div>
         </div>
 
         <div class="step" id="step6">
-            <label>4. Què li afegiries a la teva calculadora per fer-la més xula o perquè no s'equivoqués mai?</label>
-            <textarea id="p4" required></textarea>
+            <label>4. Què li afegiries a la teva calculadora per fer-la més xula o perquè no s'equivoqués mai? Com la podries millorar?</label>
+            <textarea id="p4" required spellcheck="true" lang="ca"></textarea>
+            <div class="spellcheck-hint">💡 Últim esforç! Revisa els accents.</div>
         </div>
 
         <div class="navigation">
@@ -254,21 +265,4 @@
         formData.append(entries.centre, document.getElementById('centre').value);
         formData.append(entries.nom, document.getElementById('nom').value);
         formData.append(entries.p1, document.getElementById('p1').value);
-        formData.append(entries.p2, document.getElementById('p2').value);
-        formData.append(entries.p3, document.getElementById('p3').value);
-        formData.append(entries.p4, document.getElementById('p4').value);
-
-        fetch(formURL, { method: 'POST', mode: 'no-cors', body: formData })
-        .then(() => {
-            alert('Molt bé! Les teves respostes han arribat correctament. Gràcies per participar!');
-            location.reload();
-        }).catch(() => {
-            alert('S\'ha produït un error en enviar. Torna-ho a provar.');
-            submitBtn.disabled = false;
-            submitBtn.innerText = "Enviar respostes";
-        });
-    };
-</script>
-
-</body>
-</html>
+        formData.append(entries
