@@ -3,66 +3,90 @@ import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# Configuració de la pàgina
+# Configuració visual
 st.set_page_config(page_title="Mur de Gestió PD3", layout="wide")
 
 st.title("📊 Mur de Gestió: CALCULADORA ALGORÍTMICA")
-st.markdown("Anàlisi en temps real de les reflexions dels alumnes")
+st.markdown("---")
 
-# 1. Connexió amb el Google Sheet
-# Substitueix aquesta URL per la del teu full de càlcul (la que has copiat abans)
-sheet_url = "https://docs.google.com/spreadsheets/d/1srWD8f2oN_JeV4lwDYPe6ysLbRsXk9UZHE9vEmqVHlo/edit?usp=sharing"
-# Un truc per llegir el fitxer directament com a CSV
-csv_url = sheet_url.replace('/edit#gid=', '/export?format=csv&gid=')
-if '/edit' in sheet_url:
-    csv_url = sheet_url.split('/edit')[0] + '/export?format=csv'
+# 1. Connexió amb el Google Sheet (URL de visualització)
+# Assegura't que el full estigui en "Qualsevol persona amb l'enllaç pot llegir"
+sheet_url = "https://docs.google.com/spreadsheets/d/1vV0L8WqL1pGz0q9766VvFmU8o8pWc_X1T6O27Vl-x_M/edit#gid=0"
 
-@st.cache_data(ttl=600) # Actualitza les dades cada 10 minuts
-def load_data():
-    return pd.read_csv(csv_url)
+# Convertim la URL d'edició a URL de descàrrega directa CSV
+def get_csv_url(url):
+    if "/edit" in url:
+        return url.split("/edit")[0] + "/export?format=csv"
+    return url
+
+csv_url = get_csv_url(sheet_url)
+
+@st.cache_data(ttl=60) # Actualitza cada minut per veure respostes noves
+def load_data(url):
+    return pd.read_csv(url)
 
 try:
-    df = load_data()
+    df = load_data(csv_url)
     
-    # 2. Filtres a la barra lateral
-    st.sidebar.header("Filtres")
-    escola = st.sidebar.selectbox("Selecciona una Escola", ["Totes"] + list(df.iloc[:, 1].unique()))
-
-    if escola != "Totes":
-        df = df[df.iloc[:, 1] == escola]
-
-    # 3. Secció de Núvols de Paraules
-    st.header("☁️ Nuvol de Paraules (Conceptes clau)")
-    col_pregunta = st.selectbox("Tria la pregunta per analitzar:", 
-                                ["P1: Què t'ha agradat més?", 
-                                 "P2: Què és més difícil?", 
-                                 "P3: On cal tenir cura?", 
-                                 "P4: Millores per la calculadora"])
-    
-    # Mapeig de columnes (ajusta segons l'ordre del teu Excel)
-    mapa_cols = {"P1: Què t'ha agradat més?": 3, "P2: Què és més difícil?": 4, 
-                 "P3: On cal tenir cura?": 5, "P4: Millores per la calculadora": 6}
-    
-    text_analitzat = " ".join(df.iloc[:, mapa_cols[col_pregunta]].astype(str))
-    
-    if len(text_analitzat) > 10:
-        wordcloud = WordCloud(width=800, height=400, background_color="white", 
-                              colormap="Blues", stopwords=["que", "la", "el", "i", "a", "es"]).generate(text_analitzat)
-        fig, ax = plt.subplots()
-        ax.imshow(wordcloud, interpolation='bilinear')
-        ax.axis("off")
-        st.pyplot(fig)
+    if df.empty:
+        st.warning("⚠️ El full de càlcul està buit. Esperant la primera resposta...")
     else:
-        st.warning("No hi ha prou text per generar un núvol de paraules.")
+        # Netegem noms de columnes per si de cas
+        df.columns = [c.strip() for c in df.columns]
+        
+        # BARRA LATERAL: Filtres
+        st.sidebar.header("🔍 Filtres")
+        # Suposem que la columna 1 és l'Escola
+        col_escola = df.columns[1]
+        llista_escoles = ["Totes"] + sorted(df[col_escola].unique().tolist())
+        escola_seleccionada = st.sidebar.selectbox("Selecciona una Escola", llista_escoles)
 
-    # 4. Llistat de Reflexions (Targetes)
-    st.header("📝 Reflexions dels alumnes")
-    for index, row in df.iterrows():
-        with st.expander(f"⭐ {row.iloc[:, 2]} ({row.iloc[:, 1]})"):
-            st.write(f"**P1:** {row.iloc[:, 3]}")
-            st.write(f"**P2:** {row.iloc[:, 4]}")
-            st.write(f"**P3:** {row.iloc[:, 5]}")
-            st.write(f"**P4:** {row.iloc[:, 6]}")
+        if escola_seleccionada != "Totes":
+            df_filtrat = df[df[col_escola] == escola_seleccionada]
+        else:
+            df_filtrat = df
+
+        # --- SECCIÓ 1: NÚVOL DE PARAULES ---
+        st.header("☁️ Núvol de Paraules (Conceptes clau)")
+        
+        # Agafem només les columnes que semblen preguntes (de la 3 en endavant)
+        preguntes_disponibles = df.columns[3:].tolist()
+        pregunta_triada = st.selectbox("Tria la pregunta per analitzar:", preguntes_disponibles)
+
+        text_total = " ".join(df_filtrat[pregunta_triada].astype(str).tolist())
+        
+        # Llista de paraules que volem ignorar (Stopwords)
+        paraules_buides = ["que", "la", "el", "i", "a", "es", "en", "un", "una", "els", "les", "per", "perquè", "més", "molt", "nan", "si", "no"]
+
+        if len(text_total) > 15:
+            wc = WordCloud(
+                width=1000, height=500, 
+                background_color="white", 
+                colormap="viridis",
+                stopwords=paraules_buides
+            ).generate(text_total)
+            
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.imshow(wc, interpolation='bilinear')
+            ax.axis("off")
+            st.pyplot(fig)
+        else:
+            st.info("Encara no hi ha prou text en aquesta pregunta per generar un núvol.")
+
+        st.markdown("---")
+
+        # --- SECCIÓ 2: TARGETES DE RESPOSTES ---
+        st.header("📝 Reflexions dels alumnes")
+        
+        col_nom = df.columns[2] # Suposem columna 2 = Nom
+
+        for _, row in df_filtrat.iterrows():
+            with st.expander(f"⭐ {row[col_nom]} | {row[col_escola]}"):
+                for p in preguntes_disponibles:
+                    st.markdown(f"**{p}**")
+                    st.write(row[p])
+                    st.markdown("---")
 
 except Exception as e:
-    st.error("Encara no s'han rebut respostes o la URL del Google Sheet no és correcta.")
+    st.error(f"Falta connexió o dades: Revisa que el Google Sheet tingui respostes i estigui compartit correctament.")
+    st.info("Consell: Si acabes de crear el formulari, fes una resposta de prova tu mateix!")
