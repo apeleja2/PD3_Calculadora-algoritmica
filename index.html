@@ -94,6 +94,8 @@
             background: #f8f9fa;
         }
 
+        textarea { min-height: 120px; resize: none; }
+
         .navigation {
             padding: 20px 40px 40px;
             display: flex;
@@ -198,30 +200,50 @@
     let currentStep = 1;
     const totalSteps = 6;
 
+    const form = document.getElementById('pd3-form');
     const nextBtn = document.getElementById('nextBtn');
     const prevBtn = document.getElementById('prevBtn');
     const submitBtn = document.getElementById('submitBtn');
     const progress = document.getElementById('progress');
     const stepTitle = document.getElementById('step-title');
 
-    nextBtn.onclick = function() {
+    // Funció per validar si el pas actual està complet
+    function validateCurrentStep() {
         const activeStep = document.getElementById('step' + currentStep);
         const inputs = activeStep.querySelectorAll('input, select, textarea');
-        let canGoNext = true;
-
+        let isValid = true;
         inputs.forEach(i => {
-            if (i.value === "" || i.value.trim() === "") {
-                canGoNext = false;
-            }
+            if (i.value.trim() === "") isValid = false;
         });
+        return isValid;
+    }
 
-        if (canGoNext) {
-            currentStep++;
-            updateForm();
+    // Funció per avançar
+    function goNext() {
+        if (validateCurrentStep()) {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateForm();
+            }
         } else {
             alert("Si us plau, omple la resposta per poder continuar.");
         }
-    };
+    }
+
+    // Bloquejar l'Intro per defecte i fer que serveixi per passar de secció
+    form.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            // Si estem en un textarea, deixem que faci el salt de línia normal
+            if (e.target.tagName === 'TEXTAREA') return;
+            
+            e.preventDefault(); // Evita enviar el formulari
+            if (currentStep < totalSteps) {
+                goNext();
+            }
+        }
+    });
+
+    nextBtn.onclick = goNext;
 
     prevBtn.onclick = function() {
         currentStep--;
@@ -234,6 +256,7 @@
         progress.style.width = (currentStep / totalSteps * 100) + '%';
         stepTitle.innerText = "PAS " + currentStep + " DE " + totalSteps;
         prevBtn.style.display = currentStep === 1 ? 'none' : 'block';
+        
         if (currentStep === totalSteps) {
             nextBtn.style.display = 'none';
             submitBtn.style.display = 'block';
@@ -243,8 +266,12 @@
         }
     }
 
-    document.getElementById('pd3-form').onsubmit = function(e) {
+    form.onsubmit = function(e) {
         e.preventDefault();
+        
+        // Seguretat extra: si per algun motiu salta l'enviament abans de l'últim pas, el bloquegem
+        if (currentStep < totalSteps) return;
+
         submitBtn.innerText = "ENVIANT...";
         submitBtn.disabled = true;
 
