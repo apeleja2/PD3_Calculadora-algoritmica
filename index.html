@@ -58,23 +58,23 @@
         </div>
 
         <div class="step" id="step3">
-            <label>1. De les activitats de la PD3, què és el que més t'ha agradat? Per què?</label>
+            <label>1. De totes les activitats que hem fet (el repte de les cartes, descobrir com multiplicaven antigament o programar la calculadora a Scratch), quina t'ha agradat més i per què?</label>
             <textarea id="p1" placeholder="Explica la teva experiència..." spellcheck="true" lang="ca"></textarea>
             <div class="spellcheck-hint">💡 Revisa si hi ha paraules subratllades en vermell!</div>
         </div>
 
         <div class="step" id="step4">
-            <label>2. Què creus que és més difícil: aprendre els 3 mètodes de la multiplicació o ensenyar a l'ordinador a fer-ho sol? Per què?</label>
+            <label>2. Què és més difícil: aprendre a multiplicar de 3 maneres diferents (com la Maria, el Pol o l'Aina) o ensenyar a l'ordinador (Scratch) a fer-ho sol? Per què?</label>
             <textarea id="p2" spellcheck="true" lang="ca"></textarea>
         </div>
 
         <div class="step" id="step5">
-            <label>3. Si un company o companya comencés la PD3 ara, en quin moment li diries que tingués cura perquè per a tu ha estat el més difícil?</label>
+            <label>3. Imagina que un company o una companya comença la PD3 ara mateix. En quin moment li diries: 'Ves amb compte aquí, que això és el més complicat de tot'?</label>
             <textarea id="p3" spellcheck="true" lang="ca"></textarea>
         </div>
 
         <div class="step" id="step6">
-            <label>4. Què li afegiries a la teva calculadora per fer-la més "xula" o perquè no s'equivoqués mai? Com la podries millorar?</label>
+            <label>4. Si poguessis fer la teva calculadora de nou, què li afegiries per fer-la més xula o perquè no s'equivoqués mai?</label>
             <textarea id="p4" spellcheck="true" lang="ca"></textarea>
         </div>
 
@@ -95,69 +95,4 @@
         p1: "entry.131029136", 
         p2: "entry.704364150",
         p3: "entry.996996479",
-        p4: "entry.1525510283"
-    };
-
-    let currentStep = 1;
-    const totalSteps = 6;
-    const form = document.getElementById('pd3-form');
-    const nextBtn = document.getElementById('nextBtn');
-    const prevBtn = document.getElementById('prevBtn');
-    const submitBtn = document.getElementById('submitBtn');
-    const progress = document.getElementById('progress');
-    const stepTitle = document.getElementById('step-title');
-
-    function updateForm() {
-        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-        document.getElementById('step' + currentStep).classList.add('active');
-        progress.style.width = (currentStep / totalSteps * 100) + '%';
-        stepTitle.innerText = "PAS " + currentStep + " DE " + totalSteps;
-        prevBtn.style.display = currentStep === 1 ? 'none' : 'block';
-        if (currentStep === totalSteps) {
-            nextBtn.style.display = 'none';
-            submitBtn.style.display = 'block';
-        } else {
-            nextBtn.style.display = 'block';
-            submitBtn.style.display = 'none';
-        }
-    }
-
-    nextBtn.onclick = () => {
-        const activeStep = document.getElementById('step' + currentStep);
-        const input = activeStep.querySelector('input, select, textarea');
-        if (input.value.trim() !== "") {
-            currentStep++;
-            updateForm();
-        } else {
-            alert("Si us plau, respon abans de continuar.");
-        }
-    };
-
-    prevBtn.onclick = () => { currentStep--; updateForm(); };
-
-    form.onsubmit = (e) => {
-        e.preventDefault();
-        submitBtn.innerText = "ENVIANT...";
-        submitBtn.disabled = true;
-
-        const formData = new FormData();
-        formData.append(entries.centre, document.getElementById('centre').value);
-        formData.append(entries.nom, document.getElementById('nom').value);
-        formData.append(entries.p1, document.getElementById('p1').value);
-        formData.append(entries.p2, document.getElementById('p2').value);
-        formData.append(entries.p3, document.getElementById('p3').value);
-        formData.append(entries.p4, document.getElementById('p4').value);
-
-        fetch(formURL, { method: 'POST', mode: 'no-cors', body: formData })
-        .then(() => {
-            alert('Molt bé! Les teves respostes han arribat correctament.');
-            location.reload();
-        }).catch(() => {
-            alert('Error en enviar. Torna-ho a provar.');
-            submitBtn.disabled = false;
-            submitBtn.innerText = "Enviar respostes";
-        });
-    };
-</script>
-</body>
-</html>
+        p4: "entry.1
