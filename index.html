@@ -3,59 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PD3: Calculadora Algorítmica - Veu de l'Alumnat</title>
+    <title>PD3: La Veu de l'Alumnat - Calculadora</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --color-principal: #2c3e50;
-            --color-accent: #27ae60;
-            --color-fons: #f4f7f6;
+            --color-primari: #3498db; /* Blau escolar */
+            --color-accent: #e67e22;  /* Taronja per destacar */
+            --color-fons: #fcfcfc;
+            --color-text: #2c3e50;
         }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--color-fons);
+            font-family: 'Montserrat', sans-serif;
+            background-color: #e5e9f0; /* Color de fons suau */
+            background-image: radial-gradient(#bdc3c7 0.5px, transparent 0.5px);
+            background-size: 20px 20px; /* Efecte de paper de punts */
             margin: 0;
             padding: 20px;
             display: flex;
             justify-content: center;
         }
+
         .container {
-            max-width: 800px;
+            max-width: 750px;
             width: 100%;
             background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
         }
-        header {
-            text-align: center;
-            border-bottom: 2px solid var(--color-fons);
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-        }
-        h1 { color: var(--color-principal); margin: 0; font-size: 1.8rem; }
-        p.subtitle { color: #7f8c8d; margin-top: 10px; }
 
-        .form-group { margin-bottom: 25px; }
+        header {
+            background-color: var(--color-primari);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 { margin: 0; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .subtitle { margin-top: 10px; opacity: 0.9; font-weight: 300; }
+
+        form { padding: 40px; }
+
+        .form-group { margin-bottom: 30px; }
+
         label {
             display: block;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: var(--color-principal);
-            line-height: 1.4;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--color-text);
+            line-height: 1.5;
+            font-size: 1.05rem;
         }
+
+        /* Estil per les inputs i textareas tipus llibreta */
         input, select, textarea {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid #edeff2;
+            border-radius: 12px;
             font-size: 1rem;
+            font-family: inherit;
             box-sizing: border-box;
-            transition: border-color 0.3s;
+            background-color: #f8f9fa;
+            transition: all 0.3s;
         }
+
         input:focus, select:focus, textarea:focus {
             outline: none;
-            border-color: var(--color-accent);
+            border-color: var(--color-primari);
+            background-color: white;
+            box-shadow: 0 0 8px rgba(52, 152, 219, 0.2);
         }
+
         textarea { min-height: 100px; resize: vertical; }
 
         button {
@@ -63,22 +84,39 @@
             background-color: var(--color-accent);
             color: white;
             border: none;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 1.1rem;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 1.2rem;
             font-weight: bold;
+            text-transform: uppercase;
             cursor: pointer;
-            transition: background 0.3s, transform 0.2s;
+            transition: transform 0.2s, background 0.3s;
+            box-shadow: 0 5px 0 #d35400; /* Efecte 3D al botó */
         }
+
         button:hover {
-            background-color: #219150;
+            background-color: #d35400;
             transform: translateY(-2px);
         }
+
+        button:active {
+            transform: translateY(3px);
+            box-shadow: none;
+        }
+
         .footer {
             text-align: center;
-            margin-top: 30px;
-            font-size: 0.8rem;
-            color: #bdc3c7;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #95a5a6;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+        }
+
+        /* Colors especials per les preguntes */
+        label::first-letter {
+            color: var(--color-primari);
+            font-size: 1.2rem;
         }
     </style>
 </head>
@@ -86,64 +124,62 @@
 
 <div class="container">
     <header>
-        <h1>PD3: Calculadora Algorítmica</h1>
-        <p class="subtitle">Recollida de reflexions i aprenentatges</p>
+        <h1>PD3: LA NOSTRA CALCULADORA</h1>
+        <p class="subtitle">Explica'ns què t'ha semblat el projecte!</p>
     </header>
 
     <form id="pd3-form">
         <div class="form-group">
-            <label for="centre">A quin centre educatiu pertanys?</label>
+            <label for="centre">De quina escola ets?</label>
             <select id="centre" required>
                 <option value="" disabled selected>Tria el teu centre...</option>
                 <option value="LA CANALETA">LA CANALETA</option>
-                <option value="CENTRE 2">CENTRE 2</option>
-                <option value="CENTRE 3">CENTRE 3</option>
-                <option value="CENTRE 4">CENTRE 4</option>
-                <option value="CENTRE 5">CENTRE 5</option>
-                <option value="CENTRE 6">CENTRE 6</option>
-                <option value="CENTRE 7">CENTRE 7</option>
-                <option value="CENTRE 8">CENTRE 8</option>
+                <option value="ESCOLA 2">ESCOLA 2</option>
+                <option value="ESCOLA 3">ESCOLA 3</option>
+                <option value="ESCOLA 4">ESCOLA 4</option>
+                <option value="ESCOLA 5">ESCOLA 5</option>
+                <option value="ESCOLA 6">ESCOLA 6</option>
+                <option value="ESCOLA 7">ESCOLA 7</option>
+                <option value="ESCOLA 8">ESCOLA 8</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label for="nom">Nom i cognoms:</label>
-            <input type="text" id="nom" placeholder="Escriu el teu nom..." required>
+            <label for="nom">Com et dius?</label>
+            <input type="text" id="nom" placeholder="El teu nom i cognom" required>
         </div>
 
         <div class="form-group">
-            <label>1. De totes les activitats que hem fet (el repte de les cartes, descobrir com multiplicaven antigament o programar la calculadora a Scratch), quina t'ha agradat més i per què?</label>
-            <textarea id="p1" required></textarea>
+            <label>1. De totes les activitats (les cartes, multiplicar com antigament o l'Scratch), quina t'ha agradat més i per què?</label>
+            <textarea id="p1" required placeholder="A mi m'ha agradat molt..."></textarea>
         </div>
 
         <div class="form-group">
-            <label>2. Què és més difícil: aprendre a multiplicar de 3 maneres diferents (com la Maria, el Pol o l'Aina) o ensenyar a l'ordinador (Scratch) a fer-ho sol? Per què?</label>
+            <label>2. Què creus que és més difícil: aprendre a multiplicar de 3 maneres diferents o ensenyar a l'ordinador (Scratch) a fer-ho sol?</label>
             <textarea id="p2" required></textarea>
         </div>
 
         <div class="form-group">
-            <label>3. Imagina que un company comença la PD3 ara mateix. En quin moment li diries: 'Ves amb compte aquí, que això és el més complicat de tot'?</label>
+            <label>3. Si un amic o amiga comencés el projecte ara, on li diries: "Ves amb compte aquí, que això és difícil"?</label>
             <textarea id="p3" required></textarea>
         </div>
 
         <div class="form-group">
-            <label>4. Si poguessis fer la teva calculadora de nou, què li afegiries per fer-la més xula o perquè no s'equivoqués mai?</label>
+            <label>4. Què li afegiries a la teva calculadora per fer-la més xula o perquè no s'equivoqués mai?</label>
             <textarea id="p4" required></textarea>
         </div>
 
-        <button type="submit" id="submit-btn">Enviar la meva reflexió</button>
+        <button type="submit" id="submit-btn">Enviar la meva opinió</button>
     </form>
 
     <div class="footer">
-        PD3 - Analistes de dades | GitHub Pages
+        Projecte Analistes de dades - PD3 | Creat per a l'escola
     </div>
 </div>
 
 <script>
-    // URL de tramesa del formulari (formResponse)
     const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSeo6CA_HleiTOP0zEKHjw_ZH9PJFKu0PZb2kijS0AmnP-N8BA/formResponse";
     
-    // IDs extrets del teu últim enllaç
     const entries = {
         centre: "entry.319846495",
         nom: "entry.406772652",
@@ -156,10 +192,32 @@
     document.getElementById('pd3-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const btn = document.getElementById('submit-btn');
-        btn.innerText = "Enviant...";
+        btn.innerText = "S'ESTÀ ENVIANT...";
         btn.disabled = true;
 
-        // Creem el cos de la petició amb els paràmetres de Google Forms
         const formData = new FormData();
         formData.append(entries.centre, document.getElementById('centre').value);
-        formData.append(
+        formData.append(entries.nom, document.getElementById('nom').value);
+        formData.append(entries.p1, document.getElementById('p1').value);
+        formData.append(entries.p2, document.getElementById('p2').value);
+        formData.append(entries.p3, document.getElementById('p3').value);
+        formData.append(entries.p4, document.getElementById('p4').value);
+
+        fetch(formURL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: formData
+        }).then(() => {
+            alert('Genial! Les teves respostes han volat cap al nostre servidor. Gràcies!');
+            document.getElementById('pd3-form').reset();
+            btn.innerText = "Enviar la meva opinió";
+            btn.disabled = false;
+        }).catch(err => {
+            alert('Vaja, sembla que hi ha un error. Torna-ho a intentar!');
+            btn.disabled = false;
+        });
+    });
+</script>
+
+</body>
+</html>
