@@ -2,26 +2,31 @@ import streamlit as st
 import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-import random
+import io
 
 # 1. CONFIGURACIÓ I ESTILS
-st.set_page_config(page_title="Gestió de Veu de l'Alumnat", layout="wide")
+st.set_page_config(page_title="Analitzador de Veu PD3", layout="wide")
 
 st.markdown("""
     <style>
-    .report-box { background-color: #f8f9fa; border-radius: 10px; padding: 20px; border: 1px solid #dee2e6; margin-bottom: 20px; }
-    .post-it {
-        background-color: #feff9c; padding: 15px; border-radius: 5px;
-        box-shadow: 3px 3px 10px rgba(0,0,0,0.1); margin-bottom: 10px;
-        font-family: 'Comic Sans MS', cursive; color: #2c3e50;
-    }
-    .stat-card { background-color: #3498db; color: white; padding: 15px; border-radius: 10px; text-align: center; }
+    .comparison-card { background-color: #f1f3f5; border-radius: 10px; padding: 15px; border-top: 5px solid #3498db; }
+    .quote-box { background-color: #ffffff; border-left: 5px solid #e67e22; padding: 10px; margin: 10px 0; font-style: italic; }
+    .export-slide { background-color: #1e1e1e; color: #ffffff; padding: 40px; border-radius: 15px; text-align: center; margin-bottom: 20px; border: 2px solid #e67e22; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. CÀRREGA DE DADES
+# 2. CÀRREGA I NETEJA DE DADES
 sheet_id = "1srWD8f2oN_JeV4lwDYPe6ysLbRsXk9UZHE9vEmqVHlo"
 csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+
+# Diccionari de paraules buides (Stopwords) molt complet en català
+STOPWORDS_CAT = {
+    "a", "amb", "de", "del", "dels", "la", "les", "el", "els", "un", "una", "unes", "uns", "i", "o", "que", "què", "per", "perquè", "però",
+    "és", "ser", "estar", "són", "era", "eren", "fent", "fet", "fer", "va", "van", "hi", "ha", "han", "si", "no", "com", "ens", "et", "em",
+    "tot", "tots", "tota", "totes", "molt", "més", "bastant", "només", "encara", "això", "aquell", "aquella", "meu", "teu", "seu", "nostre",
+    "na", "n", "l", "s", "d", "aquesta", "aquest", "pels", "pel", "als", "al", "també", "sempre", "ara", "on", "quan", "estic", "estava",
+    "maria", "pol", "aina" # Noms propis que surten a l'enunciat
+}
 
 @st.cache_data(ttl=60)
 def load_data():
@@ -29,83 +34,102 @@ def load_data():
     df.columns = [c.strip() for c in df.columns]
     return df
 
+def generar_wc(text):
+    if len(text) < 10: return None
+    wc = WordCloud(
+        width=800, height=400, background_color="white",
+        stopwords=STOPWORDS_CAT, colormap="viridis", collocations=False
+    ).generate(text.lower())
+    return wc
+
 try:
     df = load_data()
-    
-    # --- MENÚ LATERAL ---
-    st.sidebar.title("🛠️ Gestió PD3")
-    opcio = st.sidebar.radio("Vés a:", ["📸 Fotografia per Centre", "🤖 Resum amb IA", "🎬 Exportació Visual", "📌 Mural Post-its"])
-    
     escoles = sorted(df.iloc[:, 1].unique().tolist())
-    escola_sel = st.sidebar.selectbox("Selecciona Centre:", escoles)
+    preguntes = df.columns[3:7].tolist()
+
+    # --- SIDEBAR ---
+    st.sidebar.title("📊 Panell de Control")
+    mode = st.sidebar.radio("Secció:", ["🏠 Comparativa de Centres", "☁️ Núvols per Pregunta", "🤖 Resum i Cites", "🎬 Exportació Visual"])
     
-    df_centre = df[df.iloc[:, 1] == escola_sel]
+    # --- 1. COMPARATIVA DE CENTRES ---
+    if mode == "🏠 Comparativa de Centres":
+        st.header("🏠 Comparativa entre Centres")
+        centres_sel = st.multiselect("Tria els centres a comparar:", escoles, default=escoles[:2])
+        
+        if centres_sel:
+            cols = st.columns(len(centres_sel))
+            for i, centre in enumerate(centres_sel):
+                df_c = df[df.iloc[:, 1] == centre]
+                with cols[i]:
+                    st.markdown(f"<div class='comparison-card'><h3>🏫 {centre}</h3>", unsafe_allow_html=True)
+                    st.metric("Total Respostes", len(df_c))
+                    
+                    # Núvol general del centre (totes les respostes juntes)
+                    text_c = " ".join(df_c[preguntes].fillna("").astype(str).values.flatten())
+                    wc = generar_wc(text_c)
+                    if wc:
+                        fig, ax = plt.subplots()
+                        ax.imshow(wc)
+                        ax.axis("off")
+                        st.pyplot(fig)
+                    st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- OPCIÓ 1: FOTOGRAFIA PER CENTRE ---
-    if opcio == "📸 Fotografia per Centre":
-        st.header(f"📊 Diagnòstic: {escola_sel}")
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Respostes", len(df_centre))
+    # --- 2. NÚVOLS PER PREGUNTA ---
+    elif mode == "☁️ Núvols per Pregunta":
+        st.header("☁️ Anàlisi per Pregunta")
+        centre_wc = st.selectbox("Tria un centre (o 'Tots'):", ["Tots"] + escoles)
+        pregunta_wc = st.selectbox("Tria la pregunta:", preguntes)
         
-        # Gràfic de paraules més usades en aquest centre
-        st.subheader("Paraules més repetides al centre")
-        text_escola = " ".join(df_centre.iloc[:, 3].fillna("").astype(str))
-        if len(text_escola) > 10:
-            wc = WordCloud(background_color="white", width=800, height=400, colormap="tab10").generate(text_escola.lower())
-            fig, ax = plt.subplots()
-            ax.imshow(wc)
-            ax.axis("off")
-            st.pyplot(fig)
+        df_wc = df if centre_wc == "Tots" else df[df.iloc[:, 1] == centre_wc]
+        text_wc = " ".join(df_wc[pregunta_wc].fillna("").astype(str))
+        
+        wc = generar_wc(text_wc)
+        if wc:
+            st.image(wc.to_array(), use_column_width=True)
+        else:
+            st.info("No hi ha prou dades per generar aquest núvol.")
 
-    # --- OPCIÓ 2: RESUM AMB IA (Lògica de resum per freqüència/temes) ---
-    elif opcio == "🤖 Resum amb IA":
-        st.header("🤖 Resum Intel·ligent de la Veu de l'Alumnat")
-        st.info("Aquest resum sintetitza les 650 veus respectant les expressions literals dels infants.")
+    # --- 3. RESUM I CITES ---
+    elif mode == "🤖 Resum i Cites":
+        st.header("🤖 Resum Significatiu")
+        centre_res = st.selectbox("Selecciona Centre:", escoles)
+        df_res = df[df.iloc[:, 1] == centre_res]
         
-        pregunta_idx = st.selectbox("Tria la pregunta a resumir:", [3, 4, 5, 6], format_func=lambda x: df.columns[x])
-        respostes = df_centre.iloc[:, pregunta_idx].dropna().tolist()
-        
-        if respostes:
-            # Simulació de processament d'IA: Agrupem per conceptes clau
-            st.markdown("### 📝 Punts clau detectats:")
-            text_total = " ".join(respostes).lower()
+        for p in preguntes:
+            st.subheader(f"📌 {p}")
+            respostes = df_res[p].dropna().tolist()
             
-            # Aquí podríem connectar amb OpenAI/Gemini, però fem un resum per "fites"
-            fites = ["Dificultat amb Scratch", "Alegria en multiplicar", "Treball en equip", "L'error com a aprenentatge"]
-            for fita in fites:
-                if fita.split()[-1].lower() in text_total:
-                    st.success(f"✅ **{fita}**: Detectat en diverses respostes.")
+            # Lògica de "Punts Clau" basada en paraules més freqüents (no buides)
+            text_p = " ".join(respostes).lower()
+            paraules = [w for w in text_p.split() if w not in STOPWORDS_CAT and len(w) > 3]
+            freq = pd.Series(paraules).value_counts().head(3).index.tolist()
             
-            st.markdown("### 🗣️ 'Cites literals' destacades:")
-            mostra_cites = random.sample(respostes, min(3, len(respostes)))
-            for cita in mostra_cites:
-                st.write(f"> *\"{cita}\"*")
+            st.markdown(f"**Temes detectats:** {', '.join(freq).upper()}")
+            
+            # Cites literals significatives (les més llargues solen ser les més explicatives)
+            respostes_ordenades = sorted(respostes, key=len, reverse=True)
+            st.markdown("**Cites significatives:**")
+            for cita in respostes_ordenades[:2]:
+                st.markdown(f"<div class='quote-box'>\"{cita}\"</div>", unsafe_allow_html=True)
 
-    # --- OPCIÓ 3: EXPORTACIÓ VISUAL (Per a presentacions) ---
-    elif opcio == "🎬 Exportació Visual":
-        st.header("🎬 Preparar veu per a Presentacions")
-        st.write("Fes una captura de pantalla d'aquestes 'targetes de presentació' per inserir al teu Google Slides.")
+    # --- 4. EXPORTACIÓ VISUAL ---
+    elif mode == "🎬 Exportació Visual":
+        st.header("🎬 Exportació per a Presentacions")
+        st.write("Aquesta secció genera una visió compacta del centre. Pots capturar-la o imprimir-la com a PDF.")
+        centre_exp = st.selectbox("Centre a exportar:", escoles)
+        df_exp = df[df.iloc[:, 1] == centre_exp]
         
-        pregunta_export = st.selectbox("Pregunta a exportar:", [3, 4, 5, 6], format_func=lambda x: df.columns[x])
-        
-        # Generem un format tipus "slide" per a cada resposta
-        for _, row in df_centre.iterrows():
+        # Filtre per pregunta per no saturar el PDF/Captura
+        p_exp = st.selectbox("De quina pregunta vols la veu de l'alumnat?", preguntes)
+
+        for _, row in df_exp.iterrows():
             st.markdown(f"""
-                <div style="background-color: #2c3e50; color: white; padding: 40px; border-radius: 15px; text-align: center; margin-bottom: 20px;">
-                    <h2 style="color: #e67e22;">"{row.iloc[pregunta_export]}"</h2>
-                    <p style="font-size: 1.2rem; border-top: 1px solid #444; padding-top: 10px;">
-                        — {row.iloc[2]}, {row.iloc[1]}
-                    </p>
+                <div class="export-slide">
+                    <h1 style="color: #e67e22; font-size: 2.5rem;">"{row[p_exp]}"</h1>
+                    <hr style="border: 1px solid #444">
+                    <p style="font-size: 1.5rem;">👤 {row.iloc[2]} | 🏫 {row.iloc[1]}</p>
                 </div>
             """, unsafe_allow_html=True)
 
-    # --- OPCIÓ 4: MURAL POST-ITS ---
-    elif opcio == "📌 Mural Post-its":
-        st.header("📌 Mural d'idees")
-        cols = st.columns(3)
-        for i, (_, row) in enumerate(df_centre.iterrows()):
-            with cols[i % 3]:
-                st.markdown(f'<div class="post-it"><b>{row.iloc[2]}:</b><br>{row.iloc[3]}</div>', unsafe_allow_html=True)
-
 except Exception as e:
-    st.error(f"Error: {e}")
+    st.error(f"Error de dades: {e}")
