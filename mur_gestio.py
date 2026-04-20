@@ -3,51 +3,51 @@ import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# 1. CONFIGURACIÓ I ESTILS PROFESSIONALS PER A PDF
-st.set_page_config(page_title="Analitzador PD3", layout="wide")
+# 1. CONFIGURACIÓ DE PÀGINA I ESTILS D'IMPRESSIÓ DINÀMICS
+st.set_page_config(page_title="Mural PDF PD3", layout="wide")
 
 st.markdown("""
     <style>
-    /* Estil dels post-its */
-    .postit-pdf {
-        padding: 12px;
-        border-radius: 4px;
-        margin-bottom: 10px;
-        border: 1px solid rgba(0,0,0,0.05);
-        min-height: 60px;
-        display: block;
-        page-break-inside: avoid;
-        font-family: 'Segoe UI', sans-serif;
-    }
-    .text-resposta { font-size: 1rem !important; color: #333; line-height: 1.2; }
-    .nom-infant { font-size: 0.75rem; color: #666; text-align: right; margin-top: 5px; font-style: italic; }
-    
-    /* Títols discrets */
-    .titol-centre-pdf { font-size: 1.4rem !important; color: #2c3e50; text-align: center; margin-bottom: 20px; font-weight: bold; }
-    .titol-pregunta-pdf { font-size: 1.1rem !important; color: #e67e22; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 15px; text-transform: uppercase; }
-
-    /* NETEJA TOTAL D'IMPRESSIÓ */
+    /* Configuració del contenidor principal per a impressió */
     @media print {
-        /* Amaga absolutament tota la interfície de Streamlit */
-        header, [data-testid="stSidebar"], [data-testid="stHeader"], .stTabs, .stButton, .stSelectbox, .stRadio, .stMetric, .stAlert, [data-testid="stDecoration"] {
+        header, [data-testid="stSidebar"], [data-testid="stHeader"], footer, .stTabs, .stButton, .stSelectbox, [data-testid="stDecoration"] {
             display: none !important;
         }
-        /* Elimina el peu de pàgina de "Manage app" */
-        footer { visibility: hidden; }
-        .main { background-color: white !important; padding: 0 !important; }
-        .block-container { padding: 0 !important; }
-        
-        /* Força el salt de pàgina per cada pregunta */
-        .salt-pagina { page-break-before: always; display: block; height: 0; }
-        .targeta-neta { box-shadow: none !important; }
+        .main .block-container { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+        .salt-pagina { page-break-before: always; display: block; height: 1px; visibility: hidden; }
     }
+
+    /* Estil de la graella de post-its (Flexbox per evitar talls) */
+    .mural-flex {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        justify-content: flex-start;
+        padding: 10px;
+    }
+
+    .postit-neta {
+        width: calc(33% - 20px); /* 3 columnes amb marge */
+        min-width: 200px;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #eee;
+        background-color: #fff;
+        page-break-inside: avoid; /* Evita que un post-it es talli entre dues pàgines */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .text-res { font-size: 0.95rem !important; line-height: 1.3; color: #333; margin-bottom: 10px; }
+    .nom-infant { font-size: 0.8rem; color: #666; text-align: right; font-style: italic; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 5px; }
+    
+    .titol-pdf { font-size: 1.2rem !important; color: #e67e22; border-bottom: 2px solid #e67e22; margin: 25px 0 15px 0; padding-bottom: 5px; width: 100%; text-transform: uppercase; }
+    .nom-escola { font-size: 1.5rem !important; text-align: center; color: #2c3e50; margin-bottom: 10px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. DICCIONARI DE NETEJA
-STOPWORDS_CAT = {"a", "amb", "de", "del", "dels", "la", "les", "el", "els", "un", "una", "i", "que", "per", "és", "són", "va", "ha", "hi", "si", "no", "com", "tot", "molt", "més", "maria", "pol", "aina", "aurora"}
-
-# 3. CÀRREGA DE DADES
+# 2. CÀRREGA DE DADES
 sheet_id = "1srWD8f2oN_JeV4lwDYPe6ysLbRsXk9UZHE9vEmqVHlo"
 csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 
@@ -61,38 +61,42 @@ try:
     df = load_data()
     escoles = sorted(df.iloc[:, 1].unique().tolist())
     preguntes = df.columns[3:7].tolist()
-    COLORS_POSTIT = ["#FFF9C4", "#FCE4EC", "#E1F5FE", "#E8F5E9"] # Groc, Rosa, Blau, Verd
+    COLORS = ["#FFF9C4", "#FCE4EC", "#E1F5FE", "#E8F5E9"] # Colors pastís per P1, P2, P3, P4
 
     st.sidebar.title("🛠️ Gestió PD3")
-    mode = st.sidebar.radio("Secció:", ["🏠 Comparativa", "☁️ Núvols", "🤖 Resum", "📮 Mural PDF"])
+    mode = st.sidebar.radio("Vés a:", ["🏠 Comparativa", "🤖 Resum", "📮 Mural PDF Neteja"])
 
-    if mode == "📮 Mural PDF":
-        c_mural = st.selectbox("Selecciona el centre per al PDF:", escoles)
-        st.info("📥 **Per un PDF perfecte:** Prem **Ctrl+P**, tria 'Desar com a PDF'. A 'Més opcions', activa 'Gràfics de fons' i posa els marges a 'Cap'.")
+    if mode == "📮 Mural PDF Neteja":
+        c_sel = st.sidebar.selectbox("Selecciona Centre:", escoles)
+        st.info("💡 **Instruccions:** Prem **Ctrl+P**, selecciona 'Desar com a PDF' i assegura't que els **Marges estiguin en 'Predeterminat'** i els **Gràfics de fons estiguin activats**.")
         
-        df_mural = df[df.iloc[:, 1] == c_mural]
-        st.markdown(f"<div class='titol-centre-pdf'>🏫 {c_mural}</div>", unsafe_allow_html=True)
-        
+        df_c = df[df.iloc[:, 1] == c_sel]
+        st.markdown(f"<div class='nom-escola'>🏫 {c_sel}</div>", unsafe_allow_html=True)
+
         for i, p in enumerate(preguntes):
-            # Salt de pàgina per a cada pregunta
-            classe_salt = "salt-pagina" if i > 0 else ""
-            st.markdown(f"<div class='{classe_salt}'></div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='titol-pregunta-pdf'>Pregunta {i+1}: {p}</div>", unsafe_allow_html=True)
+            # Força el salt de pàgina per a cada nova pregunta
+            if i > 0:
+                st.markdown('<div class="salt-pagina"></div>', unsafe_allow_html=True)
             
-            # Organització en graella de 3 columnes
-            cols = st.columns(3)
-            for idx, (index_row, dades) in enumerate(df_mural.iterrows()):
-                with cols[idx % 3]:
-                    st.markdown(f"""
-                    <div class="postit-pdf" style="background-color: {COLORS_POSTIT[i]};">
-                        <div class="text-resposta">"{dades[p]}"</div>
-                        <div class="nom-infant">({dades.iloc[2]})</div>
+            st.markdown(f"<div class='titol-pdf'>Pregunta {i+1}: {p}</div>", unsafe_allow_html=True)
+            
+            # Iniciem la graella flex per a les respostes d'aquesta pregunta
+            html_mural = '<div class="mural-flex">'
+            for _, row in df_c.iterrows():
+                # Només afegim si hi ha resposta
+                if pd.notna(row[p]):
+                    html_mural += f"""
+                    <div class="postit-neta" style="background-color: {COLORS[i]};">
+                        <div class="text-res">"{row[p]}"</div>
+                        <div class="nom-infant">({row.iloc[2]})</div>
                     </div>
-                    """, unsafe_allow_html=True)
+                    """
+            html_mural += '</div>'
+            st.markdown(html_mural, unsafe_allow_html=True)
 
     elif mode == "🤖 Resum":
-        st.header("🤖 Anàlisi de la Veu")
-        # Aquí pots mantenir el codi del resum anterior...
+        st.header("Anàlisi Veu de l'Alumnat")
+        # Aquí pots mantenir la teva lògica de resum...
 
 except Exception as e:
-    st.error(f"❌ Error: {e}")
+    st.error(f"S'ha produït un error de configuració: {e}")
