@@ -2,4 +2,3 @@ streamlit
 pandas
 wordcloud
 matplotlib
-pip install
