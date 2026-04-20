@@ -1,51 +1,40 @@
 import streamlit as st
 import pandas as pd
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import base64
 
-# 1. CONFIGURACIÓ I ESTILS PROFESSIONALS PER A PDF
-st.set_page_config(page_title="Mural PDF PD3", layout="wide")
+# 1. CONFIGURACIÓ I ESTILS
+st.set_page_config(page_title="Analitzador PD3", layout="wide")
+
+# Colors definits per preguntes
+COLORS_PREG = ["#feff9c", "#ffccf9", "#7afcff", "#c0ff8a"]
 
 st.markdown("""
     <style>
-    /* NETEJA TOTAL D'IMPRESSIÓ: Amaga interfície de Streamlit i peu de pàgina */
-    @media print {
-        header, [data-testid="stSidebar"], [data-testid="stHeader"], footer, .stTabs, .stButton, .stSelectbox, [data-testid="stDecoration"] {
-            display: none !important;
-        }
-        .main .block-container { padding: 0 !important; margin: 0 !important; width: 100% !important; }
-        .salt-pagina { page-break-before: always; display: block; height: 1px; visibility: hidden; }
-        .postit-neta { page-break-inside: avoid !important; }
+    .resum-box { background-color: #e8f4f8; padding: 20px; border-radius: 10px; border: 1px solid #3498db; margin-bottom: 25px; }
+    .mural-postit {
+        padding: 20px; border-radius: 0px 0px 20px 0px;
+        box-shadow: 3px 3px 7px rgba(0,0,0,0.1); margin-bottom: 15px;
+        border-left: 5px solid rgba(0,0,0,0.1); color: #2c3e50; min-height: 120px;
+        font-family: 'Comic Sans MS', cursive, sans-serif;
+        page-break-inside: avoid;
     }
-
-    /* Estil de la graella de post-its per a gran volum de dades */
-    .mural-flex {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        justify-content: flex-start;
-        padding: 10px;
-    }
-
-    .postit-neta {
-        width: calc(33.33% - 20px);
-        min-width: 200px;
-        padding: 15px;
-        border-radius: 5px;
-        border: 1px solid #eee;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        margin-bottom: 5px;
-    }
-
-    .text-res { font-size: 0.95rem !important; line-height: 1.3; color: #333; margin-bottom: 8px; }
-    .nom-infant { font-size: 0.8rem; color: #666; text-align: right; font-style: italic; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 5px; }
+    .nom-infant { font-size: 0.85rem; color: #555; font-style: italic; margin-top: 10px; display: block; text-align: right; }
     
-    .titol-pdf { font-size: 1.1rem !important; color: #e67e22; border-bottom: 2px solid #e67e22; margin: 20px 0 10px 0; padding-bottom: 5px; width: 100%; text-transform: uppercase; }
-    .nom-escola { font-size: 1.4rem !important; text-align: center; color: #2c3e50; margin-bottom: 5px; font-weight: bold; }
+    @media print {
+        header, .stSidebar, .stTabs, .stButton, .stSelectbox, .stRadio, .stInfo { display: none !important; }
+        .page-break { page-break-before: always; display: block; height: 0; }
+        .mural-postit { box-shadow: none; border: 1px solid #ddd; }
+        .stMarkdown { width: 100% !important; }
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. CÀRREGA DE DADES
+# 2. DICCIONARI DE NETEJA
+STOPWORDS_CAT = {"a", "amb", "de", "del", "dels", "la", "les", "el", "els", "un", "una", "i", "que", "per", "és", "són", "va", "ha", "hi", "si", "no", "com", "tot", "molt", "més", "maria", "pol", "aina", "aurora"}
+
+# 3. CÀRREGA DE DADES
 sheet_id = "1srWD8f2oN_JeV4lwDYPe6ysLbRsXk9UZHE9vEmqVHlo"
 csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 
@@ -59,33 +48,106 @@ try:
     df = load_data()
     escoles = sorted(df.iloc[:, 1].unique().tolist())
     preguntes = df.columns[3:7].tolist()
-    COLORS = ["#FFF9C4", "#FCE4EC", "#E1F5FE", "#E8F5E9"] # Groc, Rosa, Blau, Verd
 
-    st.sidebar.title("🛠️ Gestió Mural")
-    c_sel = st.sidebar.selectbox("Selecciona Centre:", escoles)
-    
-    # Contingut per a la impressió
-    df_c = df[df.iloc[:, 1] == c_sel]
-    st.markdown(f"<div class='nom-escola'>🏫 {c_sel}</div>", unsafe_allow_html=True)
+    st.sidebar.title("🛠️ Gestió PD3")
+    mode = st.sidebar.radio("Secció:", ["🏠 Comparativa", "☁️ Núvols", "🤖 Resum", "📮 Mural PDF"])
 
-    for i, p in enumerate(preguntes):
-        # Força el salt de pàgina per a cada nova pregunta en la impressió
-        if i > 0:
-            st.markdown('<div class="salt-pagina"></div>', unsafe_allow_html=True)
+    if mode == "📮 Mural PDF":
+        c_mural = st.selectbox("Selecciona el centre per generar el document:", escoles)
         
-        st.markdown(f"<div class='titol-pdf'>Pregunta {i+1}: {p}</div>", unsafe_allow_html=True)
+        # Generar l'HTML per a la finestra d'impressió neta
+        df_mural = df[df.iloc[:, 1] == c_mural]
         
-        html_mural = '<div class="mural-flex">'
-        for _, row in df_c.iterrows():
-            if pd.notna(row[p]):
-                html_mural += f"""
-                <div class="postit-neta" style="background-color: {COLORS[i]};">
-                    <div class="text-res">"{row[p]}"</div>
-                    <div class="nom-infant">({row.iloc[2]})</div>
-                </div>
-                """
-        html_mural += '</div>'
-        st.markdown(html_mural, unsafe_allow_html=True)
+        html_export = f"<html><head><title>Mural {c_mural}</title>"
+        html_export += """<style>
+            body { font-family: sans-serif; padding: 20px; }
+            .grid { display: flex; flex-wrap: wrap; gap: 10px; }
+            .postit { 
+                width: 30%; padding: 15px; border-radius: 0 0 15px 0; 
+                margin-bottom: 10px; border-left: 5px solid #ccc;
+                page-break-inside: avoid; font-family: 'Comic Sans MS', cursive;
+            }
+            .nom { font-size: 0.8rem; text-align: right; display: block; font-style: italic; }
+            .page-break { page-break-before: always; }
+            h1 { text-align: center; color: #2c3e50; }
+            h2 { color: #e67e22; border-bottom: 2px solid #e67e22; padding-top: 20px; }
+        </style></head><body>"""
+        
+        html_export += f"<h1>🏫 {c_mural}</h1>"
+        
+        for i, p in enumerate(preguntes):
+            salt = "page-break" if i > 0 else ""
+            html_export += f"<div class='{salt}'><h2>📌 {p}</h2><div class='grid'>"
+            for _, row in df_mural.iterrows():
+                html_export += f"""
+                <div class="postit" style="background-color: {COLORS_PREG[i]};">
+                    "{row[p]}"
+                    <span class="nom">({row.iloc[2]})</span>
+                </div>"""
+            html_export += "</div></div>"
+        html_export += "</body></html>"
+
+        # Botó de descàrrega/impressió neta
+        b64 = base64.b64encode(html_export.encode()).decode()
+        href = f'<a href="data:text/html;base64,{b64}" target="_blank" style="text-decoration: none;"><button style="background-color: #e67e22; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">🚀 GENERAR MURAL NET PER A PDF</button></a>'
+        
+        st.write("### 🖨️ Pas final per a una impressió perfecta")
+        st.info("Fes clic al botó taronja. S'obrirà una pestanya nova amb el mural net. Un cop allà, prem **Ctrl+P** per desar-ho com a PDF.")
+        st.markdown(href, unsafe_allow_html=True)
+
+        # Visualització prèvia a la web (per si no volen imprimir)
+        st.divider()
+        st.markdown(f"<h1 style='text-align:center;'>🏫 {c_mural}</h1>", unsafe_allow_html=True)
+        for i, p in enumerate(preguntes):
+            st.markdown(f"<h2 style='color:#e67e22; border-bottom:2px solid #e67e22;'>📌 {p}</h2>", unsafe_allow_html=True)
+            cols = st.columns(3)
+            for idx, (index_row, dades) in enumerate(df_mural.iterrows()):
+                with cols[idx % 3]:
+                    st.markdown(f"""
+                    <div class="mural-postit" style="background-color: {COLORS_PREG[i]};">
+                        "{dades[p]}"
+                        <span class="nom-infant">({dades.iloc[2]})</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+    elif mode == "🤖 Resum":
+        st.header("🤖 Anàlisi de la Veu")
+        c_res = st.selectbox("Centre:", escoles)
+        df_res = df[df.iloc[:, 1] == c_res]
+        for i, p in enumerate(preguntes):
+            st.subheader(f"❓ {p}")
+            respostes = df_res[p].dropna().tolist()
+            if respostes:
+                text_p = " ".join(respostes).lower()
+                paraules = [w for w in text_p.split() if w not in STOPWORDS_CAT and len(w) > 4]
+                temes = list(dict.fromkeys(pd.Series(paraules).value_counts().head(5).index.tolist()))
+                st.markdown(f'<div class="resum-box" style="border-left:10px solid {COLORS_PREG[i]}"><b>Resum:</b> {", ".join(temes).upper()}</div>', unsafe_allow_html=True)
+                for cita in sorted(respostes, key=len, reverse=True)[:3]:
+                    st.markdown(f'<div class="quote-box">"{cita}"</div>', unsafe_allow_html=True)
+
+    elif mode == "🏠 Comparativa":
+        st.header("🏠 Comparativa")
+        centres_sel = st.multiselect("Centres:", escoles, default=escoles[:2] if len(escoles)>1 else escoles)
+        if centres_sel:
+            cols = st.columns(len(centres_sel))
+            for i, centre in enumerate(centres_sel):
+                df_c = df[df.iloc[:, 1] == centre]
+                with cols[i]:
+                    st.subheader(f"🏫 {centre}")
+                    text_c = " ".join(df_c[preguntes].fillna("").astype(str).values.flatten())
+                    if len(text_c.strip()) > 10:
+                        wc = WordCloud(width=400, height=400, background_color="white", stopwords=STOPWORDS_CAT).generate(text_c.lower())
+                        st.image(wc.to_array(), use_container_width=True)
+
+    elif mode == "☁️ Núvols":
+        st.header("☁️ Núvols")
+        c_wc = st.selectbox("Centre:", ["Tots"] + escoles)
+        p_wc = st.selectbox("Pregunta:", preguntes)
+        df_wc = df if c_wc == "Tots" else df[df.iloc[:, 1] == c_wc]
+        text_wc = " ".join(df_wc[p_wc].fillna("").astype(str))
+        if len(text_wc.strip()) > 20:
+            wc = WordCloud(width=1000, height=500, background_color="white", stopwords=STOPWORDS_CAT).generate(text_wc.lower())
+            st.image(wc.to_array(), use_container_width=True)
 
 except Exception as e:
-    st.error(f"S'ha produït un error en carregar el mural: {e}")
+    st.error(f"❌ Error: {e}")
