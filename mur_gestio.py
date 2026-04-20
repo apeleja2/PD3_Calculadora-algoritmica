@@ -126,4 +126,35 @@ try:
         df_res = df[df.iloc[:, 1] == c_res]
         for i, p in enumerate(preguntes):
             st.subheader(f"{ICONES[i]} {p}")
-            respostes = df_res[p].dropna
+            respostes = df_res[p].dropna().tolist()
+            if respostes:
+                text_p = " ".join(respostes).lower()
+                paraules = [w for w in text_p.split() if w not in STOPWORDS_CAT and len(w) > 4]
+                temes = list(dict.fromkeys(pd.Series(paraules).value_counts().head(5).index.tolist()))
+                st.markdown(f'<div class="resum-box" style="border-left:10px solid {COLORS_PREG[i]}"><b>{TEMES[i]}</b><br>Paraules clau: {", ".join(temes).upper()}</div>', unsafe_allow_html=True)
+
+    # Altres seccions (Comparativa, Núvols) es mantenen igual...
+    elif mode == "🏠 Comparativa":
+        st.header("🏠 Comparativa entre Centres")
+        centres_sel = st.multiselect("Centres:", escoles, default=escoles[:2] if len(escoles)>1 else escoles)
+        if centres_sel:
+            cols = st.columns(len(centres_sel))
+            for i, centre in enumerate(centres_sel):
+                df_c = df[df.iloc[:, 1] == centre]
+                with cols[i]:
+                    st.subheader(f"🏫 {centre}")
+                    text_c = " ".join(df_c[preguntes].fillna("").astype(str).values.flatten())
+                    if len(text_c.strip()) > 10:
+                        wc = WordCloud(width=400, height=400, background_color="white", stopwords=STOPWORDS_CAT).generate(text_c.lower())
+                        st.image(wc.to_array(), use_container_width=True)
+
+    elif mode == "☁️ Núvols":
+        st.header("☁️ Núvols de paraules")
+        p_wc = st.selectbox("Pregunta:", preguntes)
+        text_wc = " ".join(df[p_wc].fillna("").astype(str))
+        if len(text_wc.strip()) > 20:
+            wc = WordCloud(width=800, height=400, background_color="white", stopwords=STOPWORDS_CAT).generate(text_wc.lower())
+            st.image(wc.to_array(), use_container_width=True)
+
+except Exception as e:
+    st.error(f"❌ Error: {e}")
