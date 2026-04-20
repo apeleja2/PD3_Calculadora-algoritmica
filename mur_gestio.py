@@ -3,59 +3,43 @@ import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# 1. CONFIGURACIÓ I ESTILS PROFESSIONALS PER A IMPRESSIÓ
+# 1. CONFIGURACIÓ I ESTILS PROFESSIONALS PER A PDF
 st.set_page_config(page_title="Analitzador PD3", layout="wide")
 
 st.markdown("""
     <style>
-    /* Disseny de les targetes (Post-its) */
-    .targeta-neta {
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        border: 1px solid #ddd;
-        min-height: 80px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+    /* Estil dels post-its */
+    .postit-pdf {
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        border: 1px solid rgba(0,0,0,0.05);
+        min-height: 60px;
+        display: block;
+        page-break-inside: avoid;
+        font-family: 'Segoe UI', sans-serif;
     }
-    .text-resposta {
-        font-size: 1.1rem !important;
-        line-height: 1.3;
-        color: #2c3e50;
-        margin-bottom: 8px;
-    }
-    .nom-infant {
-        font-size: 0.85rem;
-        color: #7f8c8d;
-        text-align: right;
-        font-style: italic;
-    }
+    .text-resposta { font-size: 1rem !important; color: #333; line-height: 1.2; }
+    .nom-infant { font-size: 0.75rem; color: #666; text-align: right; margin-top: 5px; font-style: italic; }
     
-    /* Millora de les capçaleres de pregunta */
-    .titol-pregunta {
-        font-size: 1.3rem !important;
-        color: #e67e22;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 5px;
-        margin-top: 30px;
-        margin-bottom: 15px;
-    }
+    /* Títols discrets */
+    .titol-centre-pdf { font-size: 1.4rem !important; color: #2c3e50; text-align: center; margin-bottom: 20px; font-weight: bold; }
+    .titol-pregunta-pdf { font-size: 1.1rem !important; color: #e67e22; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 15px; text-transform: uppercase; }
 
-    /* CSS per a la impressió neta (Elimina tot el que no sigui contingut) */
+    /* NETEJA TOTAL D'IMPRESSIÓ */
     @media print {
-        header, .stSidebar, .stTabs, .stButton, .stSelectbox, .stRadio, .stMetric, .stAlert {
+        /* Amaga absolutament tota la interfície de Streamlit */
+        header, [data-testid="stSidebar"], [data-testid="stHeader"], .stTabs, .stButton, .stSelectbox, .stRadio, .stMetric, .stAlert, [data-testid="stDecoration"] {
             display: none !important;
         }
-        .main { background-color: white !important; }
-        .targeta-neta { 
-            box-shadow: none !important; 
-            border: 0.5px solid #ccc !important;
-            page-break-inside: avoid;
-        }
-        .page-break { page-break-before: always; display: block; height: 0; }
-        .stMarkdown { width: 100% !important; }
+        /* Elimina el peu de pàgina de "Manage app" */
+        footer { visibility: hidden; }
+        .main { background-color: white !important; padding: 0 !important; }
+        .block-container { padding: 0 !important; }
+        
+        /* Força el salt de pàgina per cada pregunta */
+        .salt-pagina { page-break-before: always; display: block; height: 0; }
+        .targeta-neta { box-shadow: none !important; }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -73,41 +57,42 @@ def load_data():
     df.columns = [c.strip() for c in df.columns]
     return df
 
-# BLOC PRINCIPAL AMB CORRECCIÓ D'ERROR DE SINTAXI
 try:
     df = load_data()
     escoles = sorted(df.iloc[:, 1].unique().tolist())
     preguntes = df.columns[3:7].tolist()
-    COLORS_PREG = ["#FFF9C4", "#FCE4EC", "#E1F5FE", "#E8F5E9"] # Groc, Rosa, Blau, Verd suaus
+    COLORS_POSTIT = ["#FFF9C4", "#FCE4EC", "#E1F5FE", "#E8F5E9"] # Groc, Rosa, Blau, Verd
 
     st.sidebar.title("🛠️ Gestió PD3")
     mode = st.sidebar.radio("Secció:", ["🏠 Comparativa", "☁️ Núvols", "🤖 Resum", "📮 Mural PDF"])
 
     if mode == "📮 Mural PDF":
-        c_mural = st.selectbox("Selecciona el centre:", escoles)
-        st.info("📥 Per un PDF net: Prem **Ctrl+P**, tria 'Desar com a PDF' i assegura't que 'Gràfics de fons' estigui activat.")
+        c_mural = st.selectbox("Selecciona el centre per al PDF:", escoles)
+        st.info("📥 **Per un PDF perfecte:** Prem **Ctrl+P**, tria 'Desar com a PDF'. A 'Més opcions', activa 'Gràfics de fons' i posa els marges a 'Cap'.")
         
         df_mural = df[df.iloc[:, 1] == c_mural]
-        st.markdown(f"<h1 style='text-align:center;'>🏫 {c_mural}</h1>", unsafe_allow_html=True)
+        st.markdown(f"<div class='titol-centre-pdf'>🏫 {c_mural}</div>", unsafe_allow_html=True)
         
         for i, p in enumerate(preguntes):
-            if i > 0: st.markdown('<div class="page-break"></div>', unsafe_allow_html=True)
-            st.markdown(f"<div class='titol-pregunta'>📌 {p}</div>", unsafe_allow_html=True)
+            # Salt de pàgina per a cada pregunta
+            classe_salt = "salt-pagina" if i > 0 else ""
+            st.markdown(f"<div class='{classe_salt}'></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='titol-pregunta-pdf'>Pregunta {i+1}: {p}</div>", unsafe_allow_html=True)
             
+            # Organització en graella de 3 columnes
             cols = st.columns(3)
             for idx, (index_row, dades) in enumerate(df_mural.iterrows()):
                 with cols[idx % 3]:
                     st.markdown(f"""
-                    <div class="targeta-neta" style="background-color: {COLORS_PREG[i]};">
+                    <div class="postit-pdf" style="background-color: {COLORS_POSTIT[i]};">
                         <div class="text-resposta">"{dades[p]}"</div>
                         <div class="nom-infant">({dades.iloc[2]})</div>
                     </div>
                     """, unsafe_allow_html=True)
 
-    # (Aquí anirien les altres seccions: Comparativa, Núvols, Resum...)
     elif mode == "🤖 Resum":
         st.header("🤖 Anàlisi de la Veu")
-        # ... (Codi del resum anterior) ...
+        # Aquí pots mantenir el codi del resum anterior...
 
 except Exception as e:
     st.error(f"❌ Error: {e}")
