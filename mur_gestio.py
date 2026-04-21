@@ -29,7 +29,7 @@ STOP_WORDS = {
     "a", "amb", "de", "del", "dels", "la", "les", "el", "els", "un", "una", "i", "que", "per", "què", "com",
     "és", "són", "va", "ha", "hi", "si", "no", "tot", "molt", "més", "altre", "altres", "això", "aquí", "està",
     "maria", "pol", "aina", "aurora", "quico", "vull", "puc", "fer", "fet", "dir", "ser", "anar", "veure",
-    "crec", "sembla", "tenir", "només", "també", "però", "perque", "perquè", "li", "ens", "tots", "cada"
+    "crec", "sembla", "tenir", "només", "també", "però", "perque", "perquè", "li", "ens", "tots", "cada", "molta"
 }
 
 # 3. DADES
@@ -76,9 +76,34 @@ try:
         c_mural = st.selectbox("Centre:", escoles)
         df_mural = df[df.iloc[:, 1] == c_mural]
         
-        # Botó HTML simple per evitar talls de codi
-        st.download_button("📥 DESCARREGAR MURAL NET", "Baixa el fitxer i prem Ctrl+P", file_name="mural.html")
+        # Generació del contingut HTML real per a la descàrrega
+        html_export = f"""
+        <html><head><meta charset='UTF-8'><style>
+            body {{ font-family: sans-serif; padding: 20px; }}
+            .grid {{ display: flex; flex-wrap: wrap; gap: 10px; }}
+            .postit {{ width: 30%; padding: 10px; border-radius: 0 0 10px 0; margin-bottom: 10px; border-left: 5px solid #ccc; page-break-inside: avoid; font-family: 'Comic Sans MS'; font-size: 0.8rem; border: 1px solid #eee; }}
+            .nom {{ font-size: 0.7rem; text-align: right; display: block; font-style: italic; }}
+            .page-break {{ page-break-before: always; }}
+            h2 {{ font-size: 1rem; color: #444; }}
+        </style></head><body><h1>Mural: {c_mural}</h1>"""
         
+        for i, p in enumerate(preguntes):
+            salt = "page-break" if i > 0 else ""
+            html_export += f"<div class='{salt}'><h2>{ICONES[i]} {p}</h2><div class='grid'>"
+            res_p = df_mural[df_mural[p].notna()]
+            for _, row in res_p.iterrows():
+                html_export += f"<div class='postit' style='background-color:{COLORS_PREG[i]};'>\"{row[p]}\"<span class='nom'>({row.iloc[2]})</span></div>"
+            html_export += "</div></div>"
+        html_export += "</body></html>"
+
+        st.download_button(
+            label="📥 DESCARREGAR MURAL NET",
+            data=html_export,
+            file_name=f"Mural_{c_mural}.html",
+            mime="text/html"
+        )
+        
+        st.divider()
         for i, p in enumerate(preguntes):
             st.markdown(f"<div class='titol-pregunta-app'>{ICONES[i]} {p}</div>", unsafe_allow_html=True)
             cols = st.columns(3)
