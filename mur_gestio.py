@@ -24,12 +24,18 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. FILTRE ESTRICTE (Noms i Paraules Buides)
+# 2. FILTRE ESTRICTE (Noms propis, articles, contraccions i buides)
 STOP_WORDS = {
-    "a", "amb", "de", "del", "dels", "la", "les", "el", "els", "un", "una", "i", "que", "per", "què", "com",
-    "és", "són", "va", "ha", "hi", "si", "no", "tot", "molt", "més", "altre", "altres", "això", "aquí", "està",
-    "maria", "pol", "aina", "aurora", "quico", "vull", "puc", "fer", "fet", "dir", "ser", "anar", "veure",
-    "crec", "sembla", "tenir", "només", "també", "però", "perque", "perquè", "li", "ens", "tots", "cada", "molta"
+    # Articles i contraccions
+    "a", "al", "als", "el", "els", "la", "les", "un", "una", "uns", "unes", "del", "dels", "de", "d'", "l'", "n'", "s'",
+    # Connectors i preposicions
+    "amb", "i", "que", "per", "què", "com", "si", "no", "o", "perquè", "perque", "però", "pero", "doncs", "en", "na",
+    # Pronoms i auxiliars
+    "és", "són", "va", "ha", "hi", "li", "ens", "et", "em", "vull", "puc", "fer", "fet", "dir", "ser", "anar", "veure",
+    "tenir", "tenia", "crec", "sembla", "està", "esta", "estat", "tot", "tota", "tots", "totes", "cada", "més", "mes",
+    "molt", "molta", "molts", "moltes", "altre", "altres", "això", "aixo", "aquí", "aqui", "quan", "també", "també", "només",
+    # NOMS PROPIS (Mestres i personatges)
+    "aurora", "maria", "pol", "aina", "quico", "scratch"
 }
 
 # 3. DADES
@@ -53,10 +59,24 @@ try:
     if mode == "☁️ Núvols":
         st.header("☁️ Núvols de paraules (P1, P3, P4)")
         p_sel = st.selectbox("Tria:", [preguntes[0], preguntes[2], preguntes[3]])
-        txt = " ".join(df[p_sel].fillna("").astype(str))
-        if len(txt.strip()) > 5:
-            wc = WordCloud(width=800, height=400, background_color="white", stopwords=STOP_WORDS).generate(txt.lower())
-            fig, ax = plt.subplots(); ax.imshow(wc); ax.axis("off"); st.pyplot(fig)
+        
+        # Neteja de text específica per al núvol
+        raw_text = " ".join(df[p_sel].fillna("").astype(str)).lower()
+        # Eliminem apòstrofs per separar paraules com l'ordinador -> ordinador
+        clean_text = raw_text.replace("l'", " ").replace("d'", " ").replace("n'", " ").replace("s'", " ")
+        
+        if len(clean_text.strip()) > 5:
+            wc = WordCloud(
+                width=800, 
+                height=400, 
+                background_color="white", 
+                stopwords=STOP_WORDS,
+                colormap="Set2"
+            ).generate(clean_text)
+            fig, ax = plt.subplots()
+            ax.imshow(wc, interpolation="bilinear")
+            ax.axis("off")
+            st.pyplot(fig)
 
     elif mode == "🤖 Resum":
         st.header("🤖 Resum i Cites Literals")
@@ -66,7 +86,8 @@ try:
             st.markdown(f"<div class='titol-pregunta-app'>{ICONES[i]} {p}</div>", unsafe_allow_html=True)
             res = df_c[p].dropna().tolist()
             if res:
-                p_netes = [w for w in " ".join(res).lower().split() if w not in STOP_WORDS and len(w)>4]
+                # Filtrar paraules per als conceptes clau
+                p_netes = [w for w in " ".join(res).lower().replace("l'", " ").split() if w not in STOP_WORDS and len(w)>3]
                 conc = list(dict.fromkeys(pd.Series(p_netes).value_counts().head(6).index.tolist()))
                 st.markdown(f'<div class="resum-box" style="border-left:5px solid {COLORS_PREG[i]}"><b>{TEMES[i]}</b>: {", ".join(conc).upper()}</div>', unsafe_allow_html=True)
                 for cita in sorted(res, key=len, reverse=True)[:5]:
@@ -76,7 +97,6 @@ try:
         c_mural = st.selectbox("Centre:", escoles)
         df_mural = df[df.iloc[:, 1] == c_mural]
         
-        # Generació del contingut HTML real per a la descàrrega
         html_export = f"""
         <html><head><meta charset='UTF-8'><style>
             body {{ font-family: sans-serif; padding: 20px; }}
@@ -96,12 +116,7 @@ try:
             html_export += "</div></div>"
         html_export += "</body></html>"
 
-        st.download_button(
-            label="📥 DESCARREGAR MURAL NET",
-            data=html_export,
-            file_name=f"Mural_{c_mural}.html",
-            mime="text/html"
-        )
+        st.download_button(label="📥 DESCARREGAR MURAL NET", data=html_export, file_name=f"Mural_{c_mural.replace(' ', '_')}.html", mime="text/html")
         
         st.divider()
         for i, p in enumerate(preguntes):
