@@ -74,40 +74,62 @@ try:
         c_mural = st.selectbox("Selecciona Centre:", escoles)
         df_mural = df[df.iloc[:, 1] == c_mural]
         
-        # --- GENERACIÓ HTML PER IMPRIMIR (MÉS COMPACTE) ---
+        # --- GENERACIÓ HTML PER IMPRIMIR ---
         html_print = f"""
         <html><head><style>
             @media print {{ 
                 .page-break {{ page-break-before: always; }} 
                 body {{ margin: 0; padding: 0; }}
             }}
-            body {{ font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; }}
-            .portada {{ height: 90vh; display: flex; flex-direction: column; justify-content: center; text-align: center; border: 10px solid #f0f0f0; padding: 20px; }}
-            .portada h1 {{ font-size: 50px; margin-bottom: 10px; color: #007bff; }}
-            .portada h2 {{ font-size: 30px; color: #555; }}
-            .titol-seccio {{ font-size: 22px; font-weight: bold; margin: 30px 0 15px 0; padding-bottom: 5px; border-bottom: 3px solid #333; page-break-after: avoid; }}
+            body {{ font-family: 'Segoe UI', sans-serif; color: #333; }}
+            .portada {{ 
+                height: 98vh; 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: center; 
+                text-align: center; 
+                padding: 40px;
+                page-break-after: always;
+            }}
+            .portada h1 {{ font-size: 55px; margin-bottom: 10px; color: #007bff; }}
+            .portada h2 {{ font-size: 32px; color: #555; margin-top: 0; }}
+            .titol-seccio {{ 
+                font-size: 22px; 
+                font-weight: bold; 
+                margin: 0 0 15px 0; 
+                padding-bottom: 8px; 
+                border-bottom: 3px solid #333; 
+                page-break-after: avoid; 
+            }}
+            .seccio-pregunta {{ padding: 40px; }}
             .mosaics {{ display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }}
             .mini-postit {{ 
-                width: 22%; padding: 10px; border-radius: 4px; font-size: 10px; 
+                width: 23%; padding: 10px; border-radius: 4px; font-size: 10px; 
                 line-height: 1.2; break-inside: avoid; border: 1px solid rgba(0,0,0,0.05);
                 display: flex; flex-direction: column; justify-content: space-between;
+                min-height: 60px;
             }}
             .autor {{ text-align: right; font-size: 8px; font-weight: bold; margin-top: 5px; opacity: 0.7; }}
         </style></head><body>
             <div class="portada">
-                <p style="font-size: 14px; text-transform: uppercase; letter-spacing: 3px;">Informe de Reflexions</p>
+                <p style="font-size: 16px; text-transform: uppercase; letter-spacing: 5px; color: #888;">Informe de Reflexions</p>
                 <h1>{c_mural}</h1>
                 <h2>Projecte PD3</h2>
-                <div style="margin-top: 50px; border-top: 2px solid #007bff; width: 100px; margin-left: auto; margin-right: auto;"></div>
+                <div style="margin-top: 50px; border-top: 3px solid #007bff; width: 120px; margin-left: auto; margin-right: auto;"></div>
             </div>
         """
         
         for i, p in enumerate(preguntes):
-            html_print += f"<div class='page-break'></div><div class='titol-seccio'>{ICONES[i]} {p}</div><div class='mosaics'>"
+            # Fem que la secció tingui el salt de pàgina EXCEPTE si és la primera (ja el fa la portada)
+            classe_salts = "seccio-pregunta page-break" if i > 0 else "seccio-pregunta"
+            
+            html_print += f"<div class='{classe_salts}'>"
+            html_print += f"<div class='titol-seccio'>{ICONES[i]} {p}</div><div class='mosaics'>"
+            
             res_p = df_mural[df_mural[p].notna()]
             
             st.markdown(f"**{ICONES[i]} {p}**")
-            cols = st.columns(4) # Més columnes a Streamlit també
+            cols = st.columns(4)
             
             for idx, (_, row) in enumerate(res_p.iterrows()):
                 txt_postit = row[p]
@@ -119,7 +141,7 @@ try:
                 </div>"""
                 with cols[idx % 4]:
                     st.markdown(f'<div class="mural-postit" style="background-color:{COLORS_PREG[i]};">"{txt_postit}"<br><p style="text-align:right; font-size:0.6rem;">— {autor}</p></div>', unsafe_allow_html=True)
-            html_print += "</div>"
+            html_print += "</div></div>"
         
         html_print += "</body></html>"
         
@@ -130,7 +152,7 @@ try:
             file_name=f"PD3_{c_mural}.html",
             mime="text/html"
         )
-        st.sidebar.caption("💡 Obre el fitxer, prem Ctrl+P i activa 'Gràfics de fons' per veure els colors.")
+        st.sidebar.caption("💡 Prem Ctrl+P i activa 'Gràfics de fons' per veure els colors.")
 
 except Exception as e:
     st.error(f"Error: {e}")
