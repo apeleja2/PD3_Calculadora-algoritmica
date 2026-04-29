@@ -32,18 +32,15 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. FUNCIÓ IA DIRECTA (CONNEXIÓ ROBUSTA v1beta / v1)
+# 2. FUNCIÓ IA DIRECTA (FIX DEFINITIU v1beta)
 def generar_resum_ia(respostes, pregunta):
     if not respostes or len(respostes) < 1:
-        return "No hi ha prou respostes per analitzar."
+        return "No hi ha prou dades."
     
     try:
-        if "GOOGLE_API_KEY" not in st.secrets:
-            return "Error: No s'ha trobat la clau GOOGLE_API_KEY als Secrets."
-            
         api_key = st.secrets["GOOGLE_API_KEY"]
         
-        # Intent 1: Gemini 1.5 Flash (via v1beta, més comú per a Flash a Europa)
+        # UTILITZEM NOMÉS v1beta que és la que suporta Flash i Pro a Europa ara mateix
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         
         text_input = "\n- ".join([str(r) for r in respostes if len(str(r)) > 3])
@@ -51,36 +48,41 @@ def generar_resum_ia(respostes, pregunta):
         payload = {
             "contents": [{
                 "parts": [{
-                    "text": f"Ets un mestre analitzant reflexions d'alumnes de primària. Resumeix en català i en exactament dues frases coherents les idees clau d'aquestes respostes a la pregunta '{pregunta}': {text_input}"
+                    "text": f"Ets un expert en educació. Analitza aquestes reflexions d'alumnes i resumeix en català i en dues frases les idees clau de: '{pregunta}'. Respostes: {text_input}"
                 }]
-            }]
+            }],
+            "generationConfig": {
+                "temperature": 0.7,
+                "topK": 40,
+                "topP": 0.95,
+                "maxOutputTokens": 400,
+            }
         }
         
-        headers = {'Content-Type': 'application/json'}
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        response = requests.post(url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
         res_json = response.json()
         
-        # Intent 2: Si el Flash falla o dóna 404, provem el model Pro estable
+        # Si el model Flash falla per qualsevol motiu, intentem el Pro en la mateixa versió beta
         if "error" in res_json:
-            url_alt = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}"
-            response = requests.post(url_alt, headers=headers, data=json.dumps(payload))
+            url_alt = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+            response = requests.post(url_alt, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
             res_json = response.json()
 
         if "candidates" in res_json:
             return res_json["candidates"][0]["content"]["parts"][0]["text"]
         else:
-            msg = res_json.get('error', {}).get('message', 'Error desconegut')
-            return f"La IA encara no connecta: {msg}. Revisa la clau API."
+            msg = res_json.get('error', {}).get('message', 'Error de connexió')
+            return f"Error IA: {msg}. Revisa si la clau API és correcta a AI Studio."
             
     except Exception as e:
-        return f"Error de connexió: {str(e)}"
+        return f"Error crític: {str(e)}"
 
-# 3. FILTRE STOPWORDS (Per al Núvol)
+# 3. FILTRE STOPWORDS
 STOP_WORDS_ESTRICTE = {
     "a", "al", "als", "el", "els", "la", "les", "un", "una", "uns", "unes", "del", "dels", "de", "d'", "l'", "n'", "s'", "m'", "t'",
     "amb", "i", "que", "per", "què", "com", "si", "no", "o", "perquè", "perque", "però", "pero", "doncs", "en", "na",
     "m'ha", "agradat", "sigut", "era", "estat", "va", "ha", "hi", "he", "fet", "fer", "puc", "vull", "dir", "crec", "sembla",
-    "compte", "vigila", "ves", "jo", "tu", "això", "aixo", "aquí", "aqui", "tot", "tota", "tots", "totes", "cada", "més", "mes",
+    "això", "aixo", "aquí", "aqui", "tot", "tota", "tots", "totes", "cada", "més", "mes", "quan", "també", "només", "és", "són",
     "activitats", "hem", "repte", "cartes", "descobrir", "multiplicaven", "antigament", "programar", "calculadora", "scratch",
     "quina", "perquè", "difícil", "aprendre", "multiplicar", "maneres", "diferents", "aurora", "quico", "molt", "bastant"
 }
@@ -101,61 +103,46 @@ try:
     preguntes = df.columns[3:7].tolist()
 
     st.sidebar.title("🛠️ Gestió PD3")
-    mode = st.sidebar.radio("Vés a:", ["🤖 Resum IA", "☁️ Núvols", "📮 Mural PDF", "🏠 Comparativa"])
+    mode = st.sidebar.radio("Secció:", ["🤖 Resum IA", "☁️ Núvols", "📮 Mural PDF"])
 
-    # --- SECCIÓ 1: RESUM AMB IA ---
     if mode == "🤖 Resum IA":
-        st.header("🤖 Resum Intel·ligent de les Reflexions")
+        st.header("🤖 Resum Intel·ligent amb Gemini IA")
         c_res = st.selectbox("Selecciona Centre:", escoles)
         df_c = df[df.iloc[:, 1] == c_res]
         
-        if st.button("✨ Generar anàlisi amb IA"):
+        if st.button("✨ Generar anàlisi"):
             for i, p in enumerate(preguntes):
                 res = df_c[p].dropna().tolist()
                 if len(res) > 0:
                     st.markdown(f"<div class='titol-pregunta'>{ICONES[i]} {p}</div>", unsafe_allow_html=True)
-                    
-                    with st.spinner('Analitzant respostes...'):
-                        # Cridem a la funció directa de requests
+                    with st.spinner('La IA està analitzant les dades...'):
                         resultat_ia = generar_resum_ia(res, p)
                         st.markdown(f'<div class="resum-box">{resultat_ia}</div>', unsafe_allow_html=True)
-                    
-                    with st.expander("Veure les cites més rellevants"):
-                        for cita in sorted(res, key=len, reverse=True)[:5]:
-                            st.markdown(f'<div class="quote-box">"{cita}"</div>', unsafe_allow_html=True)
                 else:
-                    st.info(f"No hi ha respostes per a: {p}")
+                    st.info(f"Sense respostes per a: {p}")
 
-    # --- SECCIÓ 2: NÚVOLS DE PARAULES ---
     elif mode == "☁️ Núvols":
-        st.header("☁️ Núvols de Paraules (Sense soroll)")
-        p_sel = st.selectbox("Tria pregunta:", [preguntes[0], preguntes[2], preguntes[3]])
-        
-        txt = " ".join(df[df.iloc[:, 1] != ""][p_sel].fillna("").astype(str)).lower()
+        st.header("☁️ Núvols de Paraules")
+        p_sel = st.selectbox("Tria pregunta:", preguntes)
+        txt = " ".join(df[p_sel].fillna("").astype(str)).lower()
         txt = re.sub(r"\b[lmdnstn]'|'s\b", " ", txt)
         paraules_netes = [w for w in txt.split() if w not in STOP_WORDS_ESTRICTE and len(w) > 3]
-        
         if len(paraules_netes) > 5:
-            wc = WordCloud(width=900, height=500, background_color="white", colormap="Dark2").generate(" ".join(paraules_netes))
-            fig, ax = plt.subplots(); ax.imshow(wc, interpolation="bilinear"); ax.axis("off"); st.pyplot(fig)
+            wc = WordCloud(width=800, height=400, background_color="white", colormap="Dark2").generate(" ".join(paraules_netes))
+            fig, ax = plt.subplots(); ax.imshow(wc); ax.axis("off"); st.pyplot(fig)
         else:
-            st.warning("No hi ha prou dades per generar un núvol.")
+            st.warning("No hi ha prou dades.")
 
-    # --- SECCIÓ 3: MURAL ---
     elif mode == "📮 Mural PDF":
-        c_mural = st.selectbox("Selecciona Centre:", escoles)
+        c_mural = st.selectbox("Centre:", escoles)
         df_mural = df[df.iloc[:, 1] == c_mural]
-        
         for i, p in enumerate(preguntes):
             st.markdown(f"<div class='titol-pregunta'>{ICONES[i]} {p}</div>", unsafe_allow_html=True)
             cols = st.columns(3)
             res_p = df_mural[df_mural[p].notna()]
             for idx, (_, row) in enumerate(res_p.iterrows()):
                 with cols[idx % 3]:
-                    st.markdown(f'<div class="mural-postit" style="background-color:{COLORS_PREG[i]};">"{row[p]}"<br><p style="text-align:right; font-size:0.7rem;">— {row.iloc[2]}</p></div>', unsafe_allow_html=True)
-
-    elif mode == "🏠 Comparativa":
-        st.info("Secció en desenvolupament.")
+                    st.markdown(f'<div class="mural-postit" style="background-color:{COLORS_PREG[i]};">"{row[p]}"<br><small>— {row.iloc[2]}</small></div>', unsafe_allow_html=True)
 
 except Exception as e:
-    st.error(f"Error general: {e}")
+    st.error(f"Error: {e}")
