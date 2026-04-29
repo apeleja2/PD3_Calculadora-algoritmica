@@ -2,47 +2,110 @@ import streamlit as st
 import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-import google.generativeai as genai
+import requests
+import json
 import re
-# --- CONFIGURACIÓ DE LA IA (Solució de compatibilitat universal) ---
-try:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    
-    # Utilitzem 'gemini-pro', que és la versió amb màxima disponibilitat
-    # i evita els errors 404 de les versions 1.5 en algunes regions.
-    model_ia = genai.GenerativeModel('gemini-pro') 
-    
-except Exception as e:
-    st.error(f"⚠️ Error de configuració: {e}")
 
+# 1. CONFIGURACIÓ I ESTILS
+st.set_page_config(page_title="Analitzador PD3", layout="wide")
+
+st.markdown("""
+    <style>
+    .resum-box { background-color: #f0f7ff; padding: 20px; border-radius: 12px; border-left: 10px solid #007bff; margin-bottom: 20px; font-size: 1.05rem; }
+    .quote-box { font-style: italic; color: #555; padding: 8px; border-left: 3px solid #eee; font-size: 0.85rem; }
+    .mural-postit { padding: 10px; border-radius: 0 0 10px 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; font-family: 'Comic Sans MS', cursive; font-size: 0.85rem; }
+    .titol-pregunta { font-size: 1.1rem; font-weight: bold; margin-top: 20px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 2. FUNCIÓ IA DIRECTA (SENSE LLIBRERIES, VIA WEB ESTABLE v1)
 def generar_resum_ia(respostes, pregunta):
+    if not respostes or len(respostes) < 1:
+        return "No hi ha prou respostes per analitzar."
+    
     try:
-        # Netegem la llista de respostes
-        respostes_netes = [str(r).strip() for r in respostes if len(str(r).strip()) > 2]
-        if not respostes_netes:
-            return "No hi ha prou contingut per analitzar."
-            
-        text_input = "\n- ".join(respostes_netes)
+        api_key = st.secrets["GOOGLE_API_KEY"]
+        # Fem servir la versió v1 estable (no la beta que falla a Europa)
+        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
         
-        prompt = f"""
-        Ets un expert en educació. Analitza les següents respostes d'alumnes de primària 
-        a la pregunta: "{pregunta}".
+        text_input = "\n- ".join([str(r) for r in respostes if len(str(r)) > 3])
         
-        TASCA:
-        1. Escriu un resum d'exactament dues frases coherents en català.
-        2. El to ha de ser professional, ideal per a una presentació.
-        3. No facis servir llistes, només text seguit.
-        4. No inventis res, centra't en el que diuen els alumnes.
+        payload = {
+            "contents": [{
+                "parts": [{
+                    "text": f"Actua com un mestre analitzant reflexions d'alumnes de primària. Resumeix en català i en dues frases les idees clau d'aquestes respostes a la pregunta '{pregunta}': {text_input}"
+                }]
+            }]
+        }
         
-        RESPOSTES:
-        {text_input}
-        """
+        response = requests.post(url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
+        res_json = response.json()
         
-        response = model_ia.generate_content(prompt)
-        return response.text
+        if "candidates" in res_json:
+            return res_json["candidates"][0]["content"]["parts"][0]["text"]
+        else:
+            return f"La IA no ha pogut respondre: {res_json.get('error', {}).get('message', 'Error desconegut')}"
     except Exception as e:
-        # Si fins i tot aquest fallés, mostrem un error detallat per saber què passa
-        return f"La IA no ha pogut generar el resum. (Detall: {str(e)})"
+        return f"Error de connexió: {e}"
+
+# 3. FILTRE STOPWORDS (Per al Núvol)
+STOP_WORDS = {"a", "al", "als", "el", "els", "la", "les", "un", "una", "de", "del", "i", "que", "per", "què", "m'ha", "agradat", "fet", "fer", "puc"}
+
+# 4. DADES
+sheet_id = "1srWD8f2oN_JeV4lwDYPe6ysLbRsXk9UZHE9vEmqVHlo"
+csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+
+@st.cache_data(ttl=60)
+def load_data():
+    df = pd.read_csv(csv_url)
+    df.columns = [c.strip() for c in df.columns]
+    return df
+
+try:
+    df = load_data()
+    escoles = sorted(df.iloc[:, 1].unique().tolist())
+    preguntes = df.columns[3:7].tolist()
+    icones = ["✨", "🧠", "🚧", "🚀"]
+
+    st.sidebar.title("🛠️ Gestió PD3")
+    mode = st.sidebar.radio("Secció:", ["🤖 Resum IA", "☁️ Núvols", "📮 Mural"])
+
+    if mode == "🤖 Resum IA":
+        st.header("🤖 Resum amb IA Real (Connexió Directa)")
+        c_res = st.selectbox("Centre:", escoles)
+        df_c = df[df.iloc[:, 1] == c_res]
+        
+        if st.button("✨ Generar anàlisi"):
+            for i, p in enumerate(preguntes):
+                res = df_c[p].dropna().tolist()
+                st.markdown(f"<div class='titol-pregunta'>{icones[i]} {p}</div>", unsafe_allow_html=True)
+                
+                with st.spinner('Analitzant...'):
+                    resultat = generar_resum_ia(res, p)
+                    st.markdown(f'<div class="resum-box">{resultat}</div>', unsafe_allow_html=True)
+
+    elif mode == "☁️ Núvols":
+        st.header("☁️ Núvols de Paraules")
+        p_sel = st.selectbox("Tria pregunta:", preguntes)
+        txt = " ".join(df[p_sel].fillna("").astype(str)).lower()
+        if len(txt) > 10:
+            wc = WordCloud(width=800, height=400, background_color="white", stopwords=STOP_WORDS).generate(txt)
+            fig, ax = plt.subplots(); ax.imshow(wc); ax.axis("off"); st.pyplot(fig)
+
+    elif mode == "📮 Mural":
+        c_mural = st.selectbox("Centre:", escoles)
+        df_mural = df[df.iloc[:, 1] == c_mural]
+        colors = ["#feff9c", "#ffccf9", "#7afcff", "#c0ff8a"]
+        for i, p in enumerate(preguntes):
+            st.markdown(f"<div class='titol-pregunta'>{icones[i]} {p}</div>", unsafe_allow_html=True)
+            cols = st.columns(3)
+            res_p = df_mural[df_mural[p].notna()]
+            for idx, (_, row) in enumerate(res_p.iterrows()):
+                with cols[idx % 3]:
+                    st.markdown(f'<div class="mural-postit" style="background-color:{colors[i]};">"{row[p]}"<br><small>— {row.iloc[2]}</small></div>', unsafe_allow_html=True)
+
+except Exception as e:
+    st.error(f"Error: {e}")
 # --- CONFIGURACIÓ PÀGINA I ESTILS ---
 st.set_page_config(page_title="Analitzador PD3", layout="wide")
 
