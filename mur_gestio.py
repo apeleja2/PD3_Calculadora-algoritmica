@@ -4,42 +4,45 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import google.generativeai as genai
 import re
-# --- CONFIGURACIÓ DE LA IA (Solució definitiva error 404) ---
+# --- CONFIGURACIÓ DE LA IA (Solució de compatibilitat universal) ---
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     
-    # Provem amb el model Pro, que és el més compatible i estable per a anàlisi de text
-    # Si flash dona error 404, el Pro és la solució estàndard.
-    model_ia = genai.GenerativeModel('gemini-1.5-pro') 
+    # Utilitzem 'gemini-pro', que és la versió amb màxima disponibilitat
+    # i evita els errors 404 de les versions 1.5 en algunes regions.
+    model_ia = genai.GenerativeModel('gemini-pro') 
     
 except Exception as e:
     st.error(f"⚠️ Error de configuració: {e}")
 
 def generar_resum_ia(respostes, pregunta):
     try:
-        # Netegem la llista de respostes per evitar enviar strings buits
-        respostes_netes = [r for r in respostes if len(str(r).strip()) > 2]
+        # Netegem la llista de respostes
+        respostes_netes = [str(r).strip() for r in respostes if len(str(r).strip()) > 2]
+        if not respostes_netes:
+            return "No hi ha prou contingut per analitzar."
+            
         text_input = "\n- ".join(respostes_netes)
         
         prompt = f"""
-        Ets un expert en pedagogia i tecnologia educativa. 
-        Analitza les següents reflexions d'alumnes de primària sobre la pregunta: "{pregunta}".
+        Ets un expert en educació. Analitza les següents respostes d'alumnes de primària 
+        a la pregunta: "{pregunta}".
         
         TASCA:
         1. Escriu un resum d'exactament dues frases coherents en català.
-        2. El to ha de ser professional, ideal per a una presentació de resultats a mestres o famílies.
-        3. No facis servir llistes ni punts, només un paràgraf narratiu.
-        4. No inventis res que no surti a les respostes.
+        2. El to ha de ser professional, ideal per a una presentació.
+        3. No facis servir llistes, només text seguit.
+        4. No inventis res, centra't en el que diuen els alumnes.
         
-        RESPOSTES DELS ALUMNES:
+        RESPOSTES:
         {text_input}
         """
         
         response = model_ia.generate_content(prompt)
         return response.text
     except Exception as e:
-        # Si el model Pro també fallés per algun motiu regional, ho capturem aquí
-        return f"Ho sento, la IA no ha pogut processar les dades en aquest moment (Error: {str(e)})"
+        # Si fins i tot aquest fallés, mostrem un error detallat per saber què passa
+        return f"La IA no ha pogut generar el resum. (Detall: {str(e)})"
 # --- CONFIGURACIÓ PÀGINA I ESTILS ---
 st.set_page_config(page_title="Analitzador PD3", layout="wide")
 
