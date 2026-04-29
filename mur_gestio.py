@@ -1,61 +1,39 @@
-import streamlit as st
-import pandas as pd
-from wordcloud import WordCloud
-import matplotlib.pyplot as plt
-import google.generativeai as genai
-import re
-
-# --- CONFIGURACIÓ DE LA IA (Versió corregida) ---
+# --- CONFIGURACIÓ DE LA IA (Solució definitiva error 404) ---
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    # Intentem carregar la versió més estable del model
-    model_ia = genai.GenerativeModel('gemini-1.5-flash-latest') 
+    
+    # Provem amb el model Pro, que és el més compatible i estable per a anàlisi de text
+    # Si flash dona error 404, el Pro és la solució estàndard.
+    model_ia = genai.GenerativeModel('gemini-1.5-pro') 
+    
 except Exception as e:
-    st.error("⚠️ Configura la clau API als Secrets de Streamlit.")
+    st.error(f"⚠️ Error de configuració: {e}")
 
-# --- LA RESTA DEL CODI ES MANTÉ IGUAL PERÒ AMB LA FUNCIÓ ACTUALITZADA ---
-
-# ... (Configuració de la pàgina, estils i stopwords que ja tenies) ...
-
-# Dins de la secció del Resum IA, he actualitzat la crida per ser més robusta:
 def generar_resum_ia(respostes, pregunta):
     try:
-        prompt = f"""
-        Ets un mestre analitzant reflexions d'alumnes de primària. 
-        Analitza aquestes respostes a la pregunta "{pregunta}": {str(respostes)}
+        # Netegem la llista de respostes per evitar enviar strings buits
+        respostes_netes = [r for r in respostes if len(str(r).strip()) > 2]
+        text_input = "\n- ".join(respostes_netes)
         
-        Instruccions:
-        1. Resumeix l'essència en exactament dues frases coherents.
-        2. Fes servir un llenguatge professional però proper, ideal per a una presentació de Google Slides.
-        3. No inventis contingut; si no hi ha prou informació, digues-ho.
+        prompt = f"""
+        Ets un expert en pedagogia i tecnologia educativa. 
+        Analitza les següents reflexions d'alumnes de primària sobre la pregunta: "{pregunta}".
+        
+        TASCA:
+        1. Escriu un resum d'exactament dues frases coherents en català.
+        2. El to ha de ser professional, ideal per a una presentació de resultats a mestres o famílies.
+        3. No facis servir llistes ni punts, només un paràgraf narratiu.
+        4. No inventis res que no surti a les respostes.
+        
+        RESPOSTES DELS ALUMNES:
+        {text_input}
         """
+        
         response = model_ia.generate_content(prompt)
         return response.text
     except Exception as e:
-        return f"La IA ha tingut un problema tècnic: {str(e)}"
-
-# --- SECCIÓ 1: RESUM AMB IA REAL (Dins del mode == '🤖 Resum IA') ---
-if 'mode' in locals() and mode == "🤖 Resum IA":
-    st.header("🤖 Resum Intel·ligent de les Reflexions")
-    c_res = st.selectbox("Selecciona Centre:", escoles)
-    df_c = df[df.iloc[:, 1] == c_res]
-    
-    if st.button("✨ Generar anàlisi amb IA"):
-        for i, p in enumerate(preguntes):
-            res = df_c[p].dropna().tolist()
-            if len(res) > 1:
-                st.markdown(f"<div class='titol-pregunta'>{ICONES[i]} {p}</div>", unsafe_allow_html=True)
-                
-                with st.spinner('La IA de Google està processant les dades...'):
-                    # Crida a la nova funció
-                    resultat = generar_resum_ia(res, p)
-                    st.markdown(f'<div class="resum-box">{resultat}</div>', unsafe_allow_html=True)
-                
-                with st.expander("Veure les 5 cites més rellevants"):
-                    for cita in sorted(res, key=len, reverse=True)[:5]:
-                        st.markdown(f'<div class="quote-box">"{cita}"</div>', unsafe_allow_html=True)
-            else:
-                st.info(f"No hi ha prou respostes per a: {p}")
+        # Si el model Pro també fallés per algun motiu regional, ho capturem aquí
+        return f"Ho sento, la IA no ha pogut processar les dades en aquest moment (Error: {str(e)})"
 # --- CONFIGURACIÓ PÀGINA I ESTILS ---
 st.set_page_config(page_title="Analitzador PD3", layout="wide")
 
