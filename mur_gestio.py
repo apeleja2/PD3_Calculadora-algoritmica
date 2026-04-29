@@ -2,9 +2,17 @@ import streamlit as st
 import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+import google.generativeai as genai
 import re
 
-# 1. CONFIGURACIÓ I ESTILS
+# --- CONFIGURACIÓ DE LA IA ---
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    model_ia = genai.GenerativeModel('gemini-1.5-flash')
+except Exception as e:
+    st.error("⚠️ Configura la clau API als Secrets de Streamlit (GOOGLE_API_KEY).")
+
+# --- CONFIGURACIÓ PÀGINA I ESTILS ---
 st.set_page_config(page_title="Analitzador PD3", layout="wide")
 
 COLORS_PREG = ["#feff9c", "#ffccf9", "#7afcff", "#c0ff8a"]
@@ -13,58 +21,34 @@ ICONES = ["✨", "🧠", "🚧", "🚀"]
 st.markdown("""
     <style>
     .resum-box { 
-        background-color: #ffffff; padding: 18px; border-radius: 12px; 
-        border: 1px solid #e0e0e0; border-left: 10px solid #3498db; 
-        margin-bottom: 20px; font-size: 1rem; line-height: 1.5; color: #333;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.02);
+        background-color: #f0f7ff; padding: 20px; border-radius: 12px; 
+        border-left: 10px solid #007bff; margin-bottom: 20px; 
+        font-size: 1.05rem; color: #1a1a1a; line-height: 1.6;
     }
     .quote-box { 
-        font-style: italic; color: #555; padding: 8px 15px; 
-        border-left: 3px solid #eee; margin-bottom: 10px; font-size: 0.85rem; 
-        background: #fdfdfd;
+        font-style: italic; color: #555; padding: 10px; border-left: 3px solid #eee; 
+        font-size: 0.85rem; background: #fafafa; margin-bottom: 5px;
     }
-    .titol-pregunta-app { font-size: 1rem !important; color: #2c3e50 !important; font-weight: bold; margin-top: 20px; }
+    .mural-postit {
+        padding: 10px; border-radius: 0px 0px 10px 0px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); 
+        margin-bottom: 10px; border-left: 5px solid rgba(0,0,0,0.1); color: #2c3e50; 
+        min-height: 80px; font-family: 'Comic Sans MS', cursive, sans-serif; font-size: 0.85rem;
+    }
+    .titol-pregunta { font-size: 1.1rem; font-weight: bold; margin-top: 20px; color: #333; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. FILTRE DE NETEJA ULTRA-ESTRICTE (DICCIONARI AMPLIAT)
+# --- FILTRE STOPWORDS (Per al Núvol) ---
 STOP_WORDS_ESTRICTE = {
     "a", "al", "als", "el", "els", "la", "les", "un", "una", "uns", "unes", "del", "dels", "de", "d'", "l'", "n'", "s'", "m'", "t'",
     "amb", "i", "que", "per", "què", "com", "si", "no", "o", "perquè", "perque", "però", "pero", "doncs", "en", "na",
     "m'ha", "agradat", "sigut", "era", "estat", "va", "ha", "hi", "he", "fet", "fer", "puc", "vull", "dir", "crec", "sembla",
-    "compte", "vigila", "ves", "jo", "tu", "ell", "ella", "nosaltres", "vosaltres", "ells", "elles", "meva", "meu", "teu",
-    "això", "aixo", "aquí", "aqui", "tot", "tota", "tots", "totes", "cada", "més", "mes", "quan", "també", "només", "és", "són",
+    "compte", "vigila", "ves", "jo", "tu", "això", "aixo", "aquí", "aqui", "tot", "tota", "tots", "totes", "cada", "més", "mes",
     "activitats", "hem", "repte", "cartes", "descobrir", "multiplicaven", "antigament", "programar", "calculadora", "scratch",
-    "quina", "perquè", "difícil", "aprendre", "multiplicar", "maneres", "diferents", "maria", "pol", "aina", "ensenyar",
-    "ordinador", "imagina", "company", "companya", "comença", "moment", "diries", "complicat", "poguessis", "afegiries",
-    "xula", "equivoqués", "mai", "aurora", "quico", "molt", "molta", "molts", "moltes", "bastant", "una", "un", "altre", "altres"
+    "quina", "perquè", "difícil", "aprendre", "multiplicar", "maneres", "diferents", "aurora", "quico", "molt", "bastant"
 }
 
-# 3. LÒGICA DE RESUM DINÀMIC (Sense plantilles)
-def generar_resum_inteligent(respostes):
-    if not respostes or len(respostes) < 2: return "No hi ha prou respostes per generar una anàlisi significativa."
-    
-    # Unim tot el text i el netegem
-    text_complet = " ".join(respostes).lower()
-    # Busquem les frases més llargues i riques en contingut (que no siguin "m'ha agradat")
-    frases = [f.strip() for f in re.split(r'[.!?]', text_complet) if len(f.split()) > 6]
-    
-    # Extreure paraules amb més pes (no stop words)
-    paraules_clau = [w for w in text_complet.replace(",", "").replace(".", "").split() if w not in STOP_WORDS_ESTRICTE and len(w) > 4]
-    tops = pd.Series(paraules_clau).value_counts().head(5).index.tolist()
-    
-    if not frases: 
-        return f"L'alumnat s'ha expressat de forma breu, posant el focus principal en conceptes com {', '.join(tops).upper()}."
-
-    # Seleccionem idees clau basant-nos en les paraules més usades
-    resum = f"L'anàlisi de les respostes indica una forta incidència en **{tops[0].upper()}** i **{tops[1].upper()}**. "
-    resum += f"En general, les reflexions giren al voltant de la idea que {frases[0].strip()}. "
-    if len(frases) > 1:
-        resum += f"A més, es destaca que {frases[-1].strip()}."
-    
-    return resum
-
-# 4. CÀRREGA DE DADES
+# --- CÀRREGA DE DADES ---
 sheet_id = "1srWD8f2oN_JeV4lwDYPe6ysLbRsXk9UZHE9vEmqVHlo"
 csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 
@@ -80,55 +64,62 @@ try:
     preguntes = df.columns[3:7].tolist()
 
     st.sidebar.title("🛠️ Gestió PD3")
-    mode = st.sidebar.radio("Secció:", ["🏠 Comparativa", "☁️ Núvols", "🤖 Resum", "📮 Mural PDF"])
+    mode = st.sidebar.radio("Vés a:", ["🤖 Resum IA", "☁️ Núvols", "📮 Mural PDF", "🏠 Comparativa"])
 
-    # --- NÚVOLS DE PARAULES (Amb neteja extra) ---
-    if mode == "☁️ Núvols":
-        st.header("☁️ Núvols de paraules (P1, P3, P4)")
-        p_sel = st.selectbox("Tria pregunta:", [preguntes[0], preguntes[2], preguntes[3]])
-        txt = " ".join(df[p_sel].fillna("").astype(str)).lower()
-        # Neteja de prefixes i apòstrofs
-        txt = re.sub(r"\b[lmdnstn]'|'s\b", " ", txt)
-        # Neteja de paraules curtes i stop words
-        paraules_netes = [w for w in txt.split() if w not in STOP_WORDS_ESTRICTE and len(w) > 3]
-        
-        if len(paraules_netes) > 10:
-            wc = WordCloud(width=900, height=500, background_color="white", colormap="tab10").generate(" ".join(paraules_netes))
-            fig, ax = plt.subplots(); ax.imshow(wc, interpolation="bilinear"); ax.axis("off"); st.pyplot(fig)
-        else:
-            st.warning("No hi ha prou paraules significatives per generar un núvol útil.")
-
-    # --- RESUM INTEL·LIGENT DINÀMIC ---
-    elif mode == "🤖 Resum":
-        st.header("🤖 Resum Dinàmic de la Veu de l'Alumnat")
+    # --- SECCIÓ 1: RESUM AMB IA REAL ---
+    if mode == "🤖 Resum IA":
+        st.header("🤖 Resum Intel·ligent de les Reflexions")
         c_res = st.selectbox("Selecciona Centre:", escoles)
         df_c = df[df.iloc[:, 1] == c_res]
         
-        for i, p in enumerate(preguntes):
-            st.markdown(f"<div class='titol-pregunta-app'>{ICONES[i]} {p}</div>", unsafe_allow_html=True)
-            res = df_c[p].dropna().tolist()
-            if res:
-                # El resum ara es construeix llegint les frases reals
-                text_resum = generar_resum_inteligent(res)
-                st.markdown(f'<div class="resum-box">{text_resum}</div>', unsafe_allow_html=True)
-                
-                # Selecció de les 5 cites més rellevants
-                st.markdown("<b>Cites literals destacades:</b>", unsafe_allow_html=True)
-                for cita in sorted(res, key=len, reverse=True)[:5]:
-                    st.markdown(f'<div class="quote-box">"{cita}"</div>', unsafe_allow_html=True)
+        if st.button("✨ Generar anàlisi amb IA"):
+            for i, p in enumerate(preguntes):
+                res = df_c[p].dropna().tolist()
+                if len(res) > 1:
+                    st.markdown(f"<div class='titol-pregunta'>{ICONES[i]} {p}</div>", unsafe_allow_html=True)
+                    
+                    with st.spinner('La IA està llegint les respostes...'):
+                        prompt = f"Ets un mestre analitzant reflexions d'alumnes de primària. Resumeix aquestes respostes en dues frases coherents per a una presentació, captant l'essència del que diuen: {str(res)}"
+                        response = model_ia.generate_content(prompt)
+                        st.markdown(f'<div class="resum-box">{response.text}</div>', unsafe_allow_html=True)
+                    
+                    with st.expander("Veure les 5 cites més rellevants"):
+                        for cita in sorted(res, key=len, reverse=True)[:5]:
+                            st.markdown(f'<div class="quote-box">"{cita}"</div>', unsafe_allow_html=True)
+                else:
+                    st.info(f"No hi ha prou respostes per a la pregunta: {p}")
 
-    # --- MURAL PDF (Sense canvis, mides reduïdes) ---
+    # --- SECCIÓ 2: NÚVOLS DE PARAULES NETS ---
+    elif mode == "☁️ Núvols":
+        st.header("☁️ Núvols de Paraules (Sense soroll)")
+        p_sel = st.selectbox("Tria pregunta (P1, P3 o P4):", [preguntes[0], preguntes[2], preguntes[3]])
+        
+        txt = " ".join(df[df.iloc[:, 1] != ""][p_sel].fillna("").astype(str)).lower()
+        # Neteja extrema: eliminem apòstrofs i caràcters especials
+        txt = re.sub(r"\b[lmdnstn]'|'s\b", " ", txt)
+        paraules_netes = [w for w in txt.split() if w not in STOP_WORDS_ESTRICTE and len(w) > 3]
+        
+        if len(paraules_netes) > 5:
+            wc = WordCloud(width=900, height=500, background_color="white", colormap="Dark2").generate(" ".join(paraules_netes))
+            fig, ax = plt.subplots(); ax.imshow(wc, interpolation="bilinear"); ax.axis("off"); st.pyplot(fig)
+        else:
+            st.warning("No hi ha prou dades per generar un núvol útil.")
+
+    # --- SECCIÓ 3: MURAL DE POST-ITS ---
     elif mode == "📮 Mural PDF":
-        c_mural = st.selectbox("Centre Mural:", escoles)
+        c_mural = st.selectbox("Selecciona Centre:", escoles)
         df_mural = df[df.iloc[:, 1] == c_mural]
-        # (Aquí es manté la teva lògica de mural que ja funciona bé)
+        
         for i, p in enumerate(preguntes):
-            st.markdown(f"<div class='titol-pregunta-app'>{ICONES[i]} {p}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='titol-pregunta'>{ICONES[i]} {p}</div>", unsafe_allow_html=True)
             cols = st.columns(3)
             res_p = df_mural[df_mural[p].notna()]
             for idx, (_, row) in enumerate(res_p.iterrows()):
                 with cols[idx % 3]:
-                    st.markdown(f'<div class="mural-postit" style="background-color:{COLORS_PREG[i]}; font-size:0.8rem;">"{row[p]}"<br><small>({row.iloc[2]})</small></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="mural-postit" style="background-color:{COLORS_PREG[i]};">"{row[p]}"<br><p style="text-align:right; font-size:0.7rem;">— {row.iloc[2]}</p></div>', unsafe_allow_html=True)
+
+    elif mode == "🏠 Comparativa":
+        st.write("Secció en desenvolupament per comparar centres.")
 
 except Exception as e:
-    st.error(f"❌ Error: {e}")
+    st.error(f"S'ha produït un error: {e}")
