@@ -32,15 +32,14 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. FUNCIÓ IA DIRECTA (FIX DEFINITIU v1beta)
+# 2. FUNCIÓ IA DIRECTA (CONFIGURACIÓ v1beta ESTABLE)
 def generar_resum_ia(respostes, pregunta):
     if not respostes or len(respostes) < 1:
         return "No hi ha prou dades."
     
     try:
         api_key = st.secrets["GOOGLE_API_KEY"]
-        
-        # UTILITZEM NOMÉS v1beta que és la que suporta Flash i Pro a Europa ara mateix
+        # Fem servir v1beta per assegurar compatibilitat amb Gemini 1.5 a Europa
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         
         text_input = "\n- ".join([str(r) for r in respostes if len(str(r)) > 3])
@@ -48,13 +47,11 @@ def generar_resum_ia(respostes, pregunta):
         payload = {
             "contents": [{
                 "parts": [{
-                    "text": f"Ets un expert en educació. Analitza aquestes reflexions d'alumnes i resumeix en català i en dues frases les idees clau de: '{pregunta}'. Respostes: {text_input}"
+                    "text": f"Ets un expert en educació. Analitza aquestes reflexions d'alumnes i resumeix en català i en exactament dues frases les idees clau de: '{pregunta}'. Respostes: {text_input}"
                 }]
             }],
             "generationConfig": {
                 "temperature": 0.7,
-                "topK": 40,
-                "topP": 0.95,
                 "maxOutputTokens": 400,
             }
         }
@@ -62,7 +59,7 @@ def generar_resum_ia(respostes, pregunta):
         response = requests.post(url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
         res_json = response.json()
         
-        # Si el model Flash falla per qualsevol motiu, intentem el Pro en la mateixa versió beta
+        # Intent de seguretat si el model Flash no respon
         if "error" in res_json:
             url_alt = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
             response = requests.post(url_alt, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
@@ -71,20 +68,18 @@ def generar_resum_ia(respostes, pregunta):
         if "candidates" in res_json:
             return res_json["candidates"][0]["content"]["parts"][0]["text"]
         else:
-            msg = res_json.get('error', {}).get('message', 'Error de connexió')
-            return f"Error IA: {msg}. Revisa si la clau API és correcta a AI Studio."
+            return "La IA està processant altres peticions. Torna a provar-ho en uns segons."
             
     except Exception as e:
-        return f"Error crític: {str(e)}"
+        return f"Error de connexió: {str(e)}"
 
-# 3. FILTRE STOPWORDS
+# 3. FILTRE STOPWORDS (Per al Núvol)
 STOP_WORDS_ESTRICTE = {
     "a", "al", "als", "el", "els", "la", "les", "un", "una", "uns", "unes", "del", "dels", "de", "d'", "l'", "n'", "s'", "m'", "t'",
     "amb", "i", "que", "per", "què", "com", "si", "no", "o", "perquè", "perque", "però", "pero", "doncs", "en", "na",
     "m'ha", "agradat", "sigut", "era", "estat", "va", "ha", "hi", "he", "fet", "fer", "puc", "vull", "dir", "crec", "sembla",
-    "això", "aixo", "aquí", "aqui", "tot", "tota", "tots", "totes", "cada", "més", "mes", "quan", "també", "només", "és", "són",
-    "activitats", "hem", "repte", "cartes", "descobrir", "multiplicaven", "antigament", "programar", "calculadora", "scratch",
-    "quina", "perquè", "difícil", "aprendre", "multiplicar", "maneres", "diferents", "aurora", "quico", "molt", "bastant"
+    "molt", "molta", "molts", "moltes", "bastant", "això", "aixo", "aquí", "aqui", "tot", "tota", "cada", "més", "mes",
+    "activitats", "hem", "repte", "cartes", "descobrir", "multiplicaven", "programar", "calculadora", "scratch"
 }
 
 # 4. CÀRREGA DE DADES
@@ -103,10 +98,11 @@ try:
     preguntes = df.columns[3:7].tolist()
 
     st.sidebar.title("🛠️ Gestió PD3")
-    mode = st.sidebar.radio("Secció:", ["🤖 Resum IA", "☁️ Núvols", "📮 Mural PDF"])
+    mode = st.sidebar.radio("Vés a:", ["🤖 Resum IA", "☁️ Núvols", "📮 Mural PDF"])
 
+    # --- SECCIÓ 1: RESUM AMB IA + CITES ---
     if mode == "🤖 Resum IA":
-        st.header("🤖 Resum Intel·ligent amb Gemini IA")
+        st.header("🤖 Resum Intel·ligent i Cites Destacades")
         c_res = st.selectbox("Selecciona Centre:", escoles)
         df_c = df[df.iloc[:, 1] == c_res]
         
@@ -115,12 +111,21 @@ try:
                 res = df_c[p].dropna().tolist()
                 if len(res) > 0:
                     st.markdown(f"<div class='titol-pregunta'>{ICONES[i]} {p}</div>", unsafe_allow_html=True)
-                    with st.spinner('La IA està analitzant les dades...'):
+                    
+                    with st.spinner('Analitzant dades...'):
                         resultat_ia = generar_resum_ia(res, p)
                         st.markdown(f'<div class="resum-box">{resultat_ia}</div>', unsafe_allow_html=True)
+                    
+                    # --- AQUÍ RECUPEREM LES CITES ---
+                    with st.expander("📌 Veure les cites més rellevants"):
+                        # Ordenem per longitud per mostrar les frases més completes
+                        cites_destacades = sorted(res, key=len, reverse=True)[:5]
+                        for cita in cites_destacades:
+                            st.markdown(f'<div class="quote-box">"{cita}"</div>', unsafe_allow_html=True)
                 else:
-                    st.info(f"Sense respostes per a: {p}")
+                    st.info(f"Sense dades per a la pregunta: {p}")
 
+    # --- SECCIÓ 2: NÚVOLS ---
     elif mode == "☁️ Núvols":
         st.header("☁️ Núvols de Paraules")
         p_sel = st.selectbox("Tria pregunta:", preguntes)
@@ -130,9 +135,8 @@ try:
         if len(paraules_netes) > 5:
             wc = WordCloud(width=800, height=400, background_color="white", colormap="Dark2").generate(" ".join(paraules_netes))
             fig, ax = plt.subplots(); ax.imshow(wc); ax.axis("off"); st.pyplot(fig)
-        else:
-            st.warning("No hi ha prou dades.")
 
+    # --- SECCIÓ 3: MURAL ---
     elif mode == "📮 Mural PDF":
         c_mural = st.selectbox("Centre:", escoles)
         df_mural = df[df.iloc[:, 1] == c_mural]
