@@ -83,13 +83,13 @@ try:
             }}
             body {{ font-family: 'Segoe UI', sans-serif; color: #333; }}
             .portada {{ 
-                height: 98vh; 
+                height: 95vh; /* Alçada reduïda per evitar el salt de pàgina extra */
                 display: flex; 
                 flex-direction: column; 
                 justify-content: center; 
                 text-align: center; 
                 padding: 40px;
-                page-break-after: always;
+                page-break-after: avoid; /* Evitem el salt automàtic que genera la pàgina en blanc */
             }}
             .portada h1 {{ font-size: 55px; margin-bottom: 10px; color: #007bff; }}
             .portada h2 {{ font-size: 32px; color: #555; margin-top: 0; }}
@@ -120,10 +120,8 @@ try:
         """
         
         for i, p in enumerate(preguntes):
-            # Fem que la secció tingui el salt de pàgina EXCEPTE si és la primera (ja el fa la portada)
-            classe_salts = "seccio-pregunta page-break" if i > 0 else "seccio-pregunta"
-            
-            html_print += f"<div class='{classe_salts}'>"
+            # El salt de pàgina es posa SEMPRE a cada pregunta (el navegador gestionarà el pas de P1 a P2)
+            html_print += f"<div class='seccio-pregunta page-break'>"
             html_print += f"<div class='titol-seccio'>{ICONES[i]} {p}</div><div class='mosaics'>"
             
             res_p = df_mural[df_mural[p].notna()]
