@@ -1,3 +1,9 @@
+import streamlit as st
+import pandas as pd
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import google.generativeai as genai
+import re
 # --- CONFIGURACIÓ DE LA IA (Solució definitiva error 404) ---
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
