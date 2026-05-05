@@ -81,35 +81,48 @@ try:
                 .page-break {{ page-break-before: always; }} 
                 body {{ margin: 0; padding: 0; }}
             }}
-            body {{ font-family: 'Segoe UI', sans-serif; color: #333; }}
+            body {{ font-family: 'Segoe UI', sans-serif; color: #333; background-color: white; }}
             .portada {{ 
-                height: 95vh; /* Alçada reduïda per evitar el salt de pàgina extra */
+                height: 92vh; 
                 display: flex; 
                 flex-direction: column; 
                 justify-content: center; 
                 text-align: center; 
                 padding: 40px;
-                page-break-after: avoid; /* Evitem el salt automàtic que genera la pàgina en blanc */
+                page-break-after: avoid; 
             }}
             .portada h1 {{ font-size: 55px; margin-bottom: 10px; color: #007bff; }}
             .portada h2 {{ font-size: 32px; color: #555; margin-top: 0; }}
+            
             .titol-seccio {{ 
-                font-size: 22px; 
+                font-size: 18px; 
                 font-weight: bold; 
-                margin: 0 0 15px 0; 
-                padding-bottom: 8px; 
-                border-bottom: 3px solid #333; 
-                page-break-after: avoid; 
+                margin: 0 0 10px 0; 
+                padding-bottom: 5px; 
+                border-bottom: 2px solid #333; 
             }}
-            .seccio-pregunta {{ padding: 40px; }}
-            .mosaics {{ display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }}
+            .seccio-pregunta {{ padding: 30px 20px; }}
+            
+            /* CONTENIDOR DE 4 COLUMNES */
+            .mosaics {{ 
+                display: block;
+                width: 100%;
+            }}
             .mini-postit {{ 
-                width: 23%; padding: 10px; border-radius: 4px; font-size: 10px; 
-                line-height: 1.2; break-inside: avoid; border: 1px solid rgba(0,0,0,0.05);
-                display: flex; flex-direction: column; justify-content: space-between;
-                min-height: 60px;
+                width: 23%; 
+                margin: 0.5%;
+                padding: 8px; 
+                border-radius: 4px; 
+                font-size: 9px; 
+                line-height: 1.1; 
+                display: inline-block; /* Força el flux horitzontal */
+                vertical-align: top;
+                word-wrap: break-word;
+                border: 1px solid rgba(0,0,0,0.05);
+                min-height: 50px;
+                box-sizing: border-box; /* Inclou padding en el 23% */
             }}
-            .autor {{ text-align: right; font-size: 8px; font-weight: bold; margin-top: 5px; opacity: 0.7; }}
+            .autor {{ text-align: right; font-size: 7px; font-weight: bold; margin-top: 4px; opacity: 0.7; }}
         </style></head><body>
             <div class="portada">
                 <p style="font-size: 16px; text-transform: uppercase; letter-spacing: 5px; color: #888;">Informe de Reflexions</p>
@@ -120,32 +133,37 @@ try:
         """
         
         for i, p in enumerate(preguntes):
-            # El salt de pàgina es posa SEMPRE a cada pregunta (el navegador gestionarà el pas de P1 a P2)
             html_print += f"<div class='seccio-pregunta page-break'>"
             html_print += f"<div class='titol-seccio'>{ICONES[i]} {p}</div><div class='mosaics'>"
             
             res_p = df_mural[df_mural[p].notna()]
             
+            # Vista a Streamlit
             st.markdown(f"**{ICONES[i]} {p}**")
             cols = st.columns(4)
             
             for idx, (_, row) in enumerate(res_p.iterrows()):
                 txt_postit = row[p]
                 autor = row.iloc[2]
+                
+                # HTML per al PDF (4 columnes forçades amb inline-block)
                 html_print += f"""
                 <div class="mini-postit" style="background-color:{COLORS_PREG[i]};">
                     <div>"{txt_postit}"</div>
                     <div class="autor">— {autor}</div>
                 </div>"""
+                
+                # Vista a l'app
                 with cols[idx % 4]:
                     st.markdown(f'<div class="mural-postit" style="background-color:{COLORS_PREG[i]};">"{txt_postit}"<br><p style="text-align:right; font-size:0.6rem;">— {autor}</p></div>', unsafe_allow_html=True)
+            
             html_print += "</div></div>"
         
         html_print += "</body></html>"
         
         st.sidebar.markdown("---")
         st.sidebar.download_button(
-            label="📄 Descarregar PDF (Mural Compacte)",
+            label="📄 Descarregar PDF (Mural 4 Columnes)",
             data=html_print,
             file_name=f"PD3_{c_mural}.html",
             mime="text/html"
